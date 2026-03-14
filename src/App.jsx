@@ -715,7 +715,7 @@ export default function FuelLog() {
         )}
 
         <div style={{textAlign:"center",padding:"24px 0 8px",fontSize:11,color:T.ft}}>
-          © Ταχμαζίδης Κ. Γιώργος — FuelLog v2.0
+          © Ταχμαζίδης Κ. Γιώργος — FuelLog v1.0
         </div>
       </div>
 
