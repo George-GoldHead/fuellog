@@ -212,7 +212,7 @@ function ChartBlock({ title, data, dk, color, type, unit, T }) {
 function Modal({ title, onClose, T, children }) {
   return (
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:T.sf,borderRadius:"22px 22px 0 0",padding:"20px 20px 36px",width:"100%",maxWidth:480,maxHeight:"92vh",overflowY:"auto",border:"1px solid "+T.br}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:T.sf,borderRadius:"22px 22px 0 0",padding:"8px 20px 36px",width:"100%",maxWidth:480,maxHeight:"92vh",overflowY:"auto",border:"1px solid "+T.br}}>
         <div style={{width:36,height:4,background:T.br,borderRadius:4,margin:"0 auto 16px"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
           <span style={{fontWeight:700,fontSize:16,color:T.tx,letterSpacing:"-0.3px"}}>{title}</span>
@@ -613,7 +613,7 @@ export default function FuelLog() {
     }]}));
     setLastFuel(p=>({...p,[vid]:{fuelType:fuelForm.fuelType,stId:fuelForm.stId,stLabel:fuelForm.stLabel,driverId:fuelForm.driverId}}));
     setFuelForm(emptyFuel(fuelForm.fuelType,fuelForm.stId,fuelForm.stLabel,fuelForm.driverId));
-    setTab("history");
+    // stay on add tab - don't redirect
   };
 
   const submitExpense=()=>{
@@ -812,7 +812,7 @@ export default function FuelLog() {
               flex:1,padding:"9px 4px",border:"none",borderRadius:"10px 10px 0 0",
               background:tab===t.id?t.color:"transparent",
               color:tab===t.id?"#fff":T.mt,
-              fontWeight:tab===t.id?700:400,fontSize:10,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.02em",
+              fontWeight:tab===t.id?700:400,fontSize:12,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.02em",
               borderBottom:tab===t.id?"none":"1px solid "+T.br,transition:"all .15s",
             }}>{t.label}</button>
           ))}
@@ -870,13 +870,13 @@ export default function FuelLog() {
             )}
 
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div><label style={lS}>ΛΙΤΡΑ</label><input type="number" step="any" placeholder="0.00" value={fuelForm.liters} onChange={e=>hff("liters",e.target.value)} style={iS(!!fuelForm.liters)}/></div>
-              <div><label style={lS}>ΤΙΜΗ / L (€)</label><input type="number" step="any" placeholder="0.000" value={fuelForm.ppl} onChange={e=>hff("ppl",e.target.value)} style={iS(!!fuelForm.ppl)}/></div>
+              <div><label style={lS}>ΛΙΤΡΑ</label><input type="number" step="any" placeholder="π.χ. 40" value={fuelForm.liters} onChange={e=>hff("liters",e.target.value)} style={iS(!!fuelForm.liters)}/></div>
+              <div><label style={lS}>ΤΙΜΗ / L (€)</label><input type="number" step="any" placeholder="π.χ. 1.789" value={fuelForm.ppl} onChange={e=>hff("ppl",e.target.value)} style={iS(!!fuelForm.ppl)}/></div>
             </div>
 
             <div>
               <label style={lS}>ΣΥΝΟΛΙΚΟ ΠΟΣΟ (€)</label>
-              <input type="number" step="any" placeholder="0.00" value={fuelForm.total} onChange={e=>hff("total",e.target.value)}
+              <input type="number" step="any" placeholder="π.χ. 70.00" value={fuelForm.total} onChange={e=>hff("total",e.target.value)}
                 style={{...iS(!!fuelForm.total),fontSize:16,fontWeight:600}}/>
             </div>
 
@@ -974,7 +974,7 @@ export default function FuelLog() {
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
                       <span style={{fontWeight:800,color:"#ef4444",fontSize:14}}>-€{fmt(ex.amount)}</span>
-                      <button onClick={()=>delExpense(ex.id)} style={{background:"none",border:"none",color:T.ft,cursor:"pointer",fontSize:18}}>✕</button>
+                      <button onClick={()=>delExpense(ex.id)} style={{background:"#ef444422",border:"1px solid #ef444444",color:"#ef4444",fontSize:14,padding:"4px 8px",borderRadius:8,cursor:"pointer",lineHeight:1}}>✕</button>
                     </div>
                   </div>
                 );
@@ -1143,7 +1143,7 @@ export default function FuelLog() {
                       </div>
                       {f.notes&&<div style={{marginTop:5,fontSize:11,color:T.mt}}>📝 {f.notes}</div>}
                     </div>
-                    <button onClick={e=>{e.stopPropagation();delFuel(f.id);}} style={{background:"none",border:"none",color:T.ft,fontSize:18,paddingLeft:10,cursor:"pointer"}}>✕</button>
+                    <button onClick={e=>{e.stopPropagation();delFuel(f.id);}} style={{background:"#ef444422",border:"1px solid #ef444444",color:"#ef4444",fontSize:14,paddingLeft:8,paddingRight:8,paddingTop:4,paddingBottom:4,borderRadius:8,cursor:"pointer",lineHeight:1}}>✕</button>
                   </div>
                 </div>
               );
