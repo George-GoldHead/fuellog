@@ -475,6 +475,14 @@ function VehicleInfoModal({ av, onClose, onUpdate, onDelete, onAddReminder, onUp
           })}
         </div>
       )}
+
+      {/* Done button */}
+      <div style={{marginTop:20,paddingTop:16,borderTop:"1px solid "+T.br}}>
+        <button onClick={onClose}
+          style={{width:"100%",padding:13,background:"linear-gradient(135deg,"+av.color+","+av.color+"cc)",color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",fontFamily:"inherit"}}>
+          ✓ Έτοιμο
+        </button>
+      </div>
     </Modal>
   );
 }
