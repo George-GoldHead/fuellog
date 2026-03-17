@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+ import { useState, useMemo, useRef, useEffect } from "react";
 
 const FUEL_COLORS = ["#3b82f6","#f97316","#10b981","#e11d48","#8b5cf6","#06b6d4","#eab308","#ec4899","#14b8a6","#f43f5e","#84cc16","#a855f7"];
 const GRAD_COLS   = ["#f97316","#3b82f6","#10b981","#f97316","#8b5cf6","#06b6d4"];
@@ -321,172 +321,9 @@ function CalendarView({ entries, col, T }) {
 // ── Vehicle Info Modal ────────────────────────────────────────────────────────
 function VehicleInfoModal({ av, onClose, onUpdate, onDelete, onAddReminder, onUpdateReminder, onDelReminder, T, dl }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [viTab, setViTab] = useState("info"); // "info" | "drivers" | "reminders"
   const upI=(f,v)=>onUpdate({info:{...av.info,[f]:v}});
   const upV=(f,v)=>onUpdate({[f]:v});
-  const lS={display:"block",fontSize:11,color:T.mt,letterSpacing:1,marginBottom:4,fontWeight:600};
-  const iS={width:"100%",padding:"9px 11px",background:T.inp,border:"1px solid "+T.ib,borderRadius:9,color:T.tx,fontSize:13,boxSizing:"border-box",fontFamily:"inherit"};
-  const drivers=av.drivers||[{id:"d1",name:"Οδηγός 1",color:"#3b82f6"}];
-
-  const addDriver=()=>{
-    const colors=["#f97316","#10b981","#e11d48","#8b5cf6","#06b6d4","#eab308"];
-    const newD={id:uid(),name:"Οδηγός "+(drivers.length+1),color:colors[drivers.length%colors.length]};
-    onUpdate({drivers:[...drivers,newD]});
-  };
-  const updDriver=(id,f,v)=>onUpdate({drivers:drivers.map(d=>d.id===id?{...d,[f]:v}:d)});
-  const delDriver=id=>{ if(drivers.length<=1) return; onUpdate({drivers:drivers.filter(d=>d.id!==id)}); };
-
-  const rst=r=>{
-    if (!r.dueDate) return null;
-    const d=ddiff(r.dueDate);
-    if (d<0)   return {c:"#ef4444",l:"Εκπρόθεσμο "+Math.abs(d)+" μ."};
-    if (d<=7)  return {c:"#ef4444",l:"Σε "+d+" μέρες!"};
-    if (d<=30) return {c:"#f97316",l:"Σε "+d+" μέρες"};
-    return {c:"#10b981",l:"Σε "+d+" μέρες"};
-  };
-
-  return (
-    <Modal title={av.icon+" "+av.name} onClose={onClose} T={T}>
-      {/* Category */}
-      <div style={{marginBottom:14}}>
-        <label style={lS}>ΤΥΠΟΣ ΟΧΗΜΑΤΟΣ</label>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          {VCATS.map(c=>(
-            <button key={c.id} onClick={()=>{upV("category",c.id);upV("icon",c.icons[0]);}}
-              style={{padding:"6px 12px",borderRadius:8,border:"1px solid "+(av.category===c.id?T.tx:T.br),
-                background:av.category===c.id?T.tx+"22":"transparent",color:av.category===c.id?T.tx:T.mt,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
-              {c.icons[0]} {c.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      {/* Icon */}
-      <div style={{marginBottom:14}}>
-        <label style={lS}>ΕΙΚΟΝΙΔΙΟ</label>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          {(VCATS.find(c=>c.id===av.category)?.icons||["🚗"]).map(ic=>(
-            <button key={ic} onClick={()=>upV("icon",ic)}
-              style={{fontSize:22,padding:"6px 10px",border:"2px solid "+(av.icon===ic?T.tx:T.br),borderRadius:9,background:"transparent",cursor:"pointer"}}>{ic}</button>
-          ))}
-        </div>
-      </div>
-      {/* Name */}
-      <div style={{marginBottom:12}}>
-        <label style={lS}>ΟΝΟΜΑ</label>
-        <input value={av.name} onChange={e=>upV("name",e.target.value)} style={iS}/>
-      </div>
-      {/* Info grid */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-        {[["ΜΑΡΚΑ","brand","π.χ. Toyota"],["ΜΟΝΤΕΛΟ","model","π.χ. Corolla"],["ΕΤΟΣ","year","π.χ. 2020"],["ΠΙΝΑΚΙΔΑ","plate","π.χ. ΑΒΓ-1234"]].map(([lb,f,ph])=>(
-          <div key={f}><label style={lS}>{lb}</label><input value={av.info?.[f]||""} onChange={e=>upI(f,e.target.value)} placeholder={ph} style={iS}/></div>
-        ))}
-      </div>
-      <div style={{marginBottom:12}}>
-        <label style={lS}>ΑΡ. ΠΛΑΙΣΙΟΥ / VIN</label>
-        <input value={av.info?.chassis||""} onChange={e=>upI("chassis",e.target.value)} placeholder="π.χ. WBA3A5C51DF..." style={iS}/>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-        <div><label style={lS}>ΑΣΦΑΛΙΣΤΙΚΗ</label><input value={av.info?.insurance||""} onChange={e=>upI("insurance",e.target.value)} placeholder="π.χ. Interamerican" style={iS}/></div>
-        <div><label style={lS}>ΑΡ. ΑΣΦΑΛΙΣΤΗΡΙΟΥ</label><input value={av.info?.insuranceNo||""} onChange={e=>upI("insuranceNo",e.target.value)} placeholder="π.χ. 12345678" style={iS}/></div>
-      </div>
-      <div style={{marginBottom:12}}>
-        <label style={lS}>ΚΥΡΙΟ ΚΑΥΣΙΜΟ</label>
-        <select value={av.info?.fuelType||"unleaded95"} onChange={e=>upI("fuelType",e.target.value)} style={{...iS,appearance:"none"}}>
-          {FTYPES.map(f=><option key={f.id} value={f.id}>{f.icon} {f.label}</option>)}
-        </select>
-      </div>
-      <div style={{marginBottom:20}}>
-        <label style={lS}>ΣΗΜΕΙΩΣΕΙΣ</label>
-        <input value={av.info?.notes||""} onChange={e=>upI("notes",e.target.value)} placeholder="π.χ. Χειμερινά λάδια..." style={iS}/>
-      </div>
-
-      {/* Drivers */}
-      <div style={{borderTop:"1px solid "+T.br,paddingTop:16,marginBottom:4}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <div style={{fontSize:12,color:T.mt,letterSpacing:1,fontWeight:700}}>ΟΔΗΓΟΙ</div>
-          <button onClick={addDriver} style={{padding:"5px 12px",background:av.color+"22",border:"1px solid "+av.color+"44",borderRadius:8,color:av.color,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ Προσθήκη</button>
-        </div>
-        {drivers.map((d,i)=>(
-          <div key={d.id} style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}>
-            <div style={{width:14,height:14,borderRadius:"50%",background:d.color,flexShrink:0,border:"2px solid "+T.br}}/>
-            <input value={d.name} onChange={e=>updDriver(d.id,"name",e.target.value)}
-              style={{...iS,flex:1,padding:"7px 10px"}}/>
-            {/* Color picker */}
-            <input type="color" value={d.color} onChange={e=>updDriver(d.id,"color",e.target.value)}
-              style={{width:32,height:32,borderRadius:8,border:"1px solid "+T.br,padding:2,background:"transparent",cursor:"pointer"}}/>
-            {drivers.length>1&&(
-              <button onClick={()=>delDriver(d.id)} style={{background:"none",border:"none",color:"#ef4444",fontSize:18,cursor:"pointer",padding:"0 4px"}}>✕</button>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Reminders */}
-      <div style={{borderTop:"1px solid "+T.br,paddingTop:16}}>
-        <div style={{fontSize:12,color:T.mt,letterSpacing:1,marginBottom:10,fontWeight:700}}>ΥΠΕΝΘΥΜΙΣΕΙΣ</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:14}}>
-          {RTYPES.map(rt=>(
-            <button key={rt.id} onClick={()=>onAddReminder(rt.id)}
-              style={{padding:"8px 10px",border:"1px solid "+T.br,borderRadius:9,background:T.bg,color:T.tx,fontSize:11,textAlign:"left",cursor:"pointer",fontFamily:"inherit"}}>
-              {rt.icon} {rt.label}
-            </button>
-          ))}
-        </div>
-        {(av.reminders||[]).length===0&&<div style={{fontSize:12,color:T.ft,textAlign:"center",padding:10}}>Δεν υπάρχουν υπενθυμίσεις.</div>}
-        {(av.reminders||[]).map(r=>{
-          const rs=rst(r), rt=RTYPES.find(x=>x.id===r.type);
-          return(
-            <div key={r.id} style={{background:T.bg,borderRadius:11,padding:11,marginBottom:9,border:"1.5px solid "+(rs&&ddiff(r.dueDate)<=7?rs.c+"88":rs?rs.c+"44":T.br)}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                <span style={{fontWeight:700,fontSize:13}}>{r.icon} {r.label}</span>
-                <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                  {rs&&<span style={{fontSize:11,color:rs.c,fontWeight:700,background:rs.c+"22",padding:"2px 8px",borderRadius:6}}>{rs.l}</span>}
-                  <button onClick={()=>onDelReminder(r.id)} style={{background:"none",border:"none",color:T.ft,fontSize:16,cursor:"pointer"}}>✕</button>
-                </div>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:rt?.hasDate&&rt?.hasKm?"1fr 1fr":"1fr",gap:8,marginBottom:6}}>
-                {rt?.hasDate&&(<div>
-                  <label style={{display:"block",fontSize:11,color:T.mt,marginBottom:2,fontWeight:600}}>Ημ/νία λήξης</label>
-                  <input type="date" value={r.dueDate||""} onChange={e=>onUpdateReminder(r.id,"dueDate",e.target.value)}
-                    style={{width:"100%",padding:"7px 9px",background:T.inp,border:"1px solid "+T.ib,borderRadius:8,color:T.tx,fontSize:12,boxSizing:"border-box"}}/>
-                </div>)}
-                {rt?.hasKm&&(<div>
-                  <label style={{display:"block",fontSize:11,color:T.mt,marginBottom:2,fontWeight:600}}>Σε {dl}</label>
-                  <input type="number" placeholder="π.χ. 40000" value={r.dueKm||""} onChange={e=>onUpdateReminder(r.id,"dueKm",e.target.value)}
-                    style={{width:"100%",padding:"7px 9px",background:T.inp,border:"1px solid "+T.ib,borderRadius:8,color:T.tx,fontSize:12,boxSizing:"border-box"}}/>
-                </div>)}
-              </div>
-              <input placeholder="Σημειώσεις..." value={r.notes||""} onChange={e=>onUpdateReminder(r.id,"notes",e.target.value)}
-                style={{width:"100%",padding:"7px 9px",background:T.inp,border:"1px solid "+T.ib,borderRadius:8,color:T.tx,fontSize:12,boxSizing:"border-box"}}/>
-            </div>
-          );
-        })}
-      </div>
-      {/* Delete */}
-      <div style={{borderTop:"1px solid "+T.br,paddingTop:14,marginTop:6}}>
-        {!confirmDelete ? (
-          <button onClick={()=>setConfirmDelete(true)}
-            style={{width:"100%",padding:11,background:"#ef444412",border:"1px solid #ef444444",borderRadius:10,color:"#ef4444",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-            🗑️ Διαγραφή Οχήματος
-          </button>
-        ) : (
-          <div style={{background:"#ef444415",borderRadius:12,padding:14,border:"1.5px solid #ef444466"}}>
-            <div style={{fontSize:13,fontWeight:700,color:"#ef4444",marginBottom:4}}>Είσαι σίγουρος;</div>
-            <div style={{fontSize:12,color:T.mt,marginBottom:12}}>Θα διαγραφούν όλα τα δεδομένα του οχήματος.</div>
-            <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>setConfirmDelete(false)}
-                style={{flex:1,padding:10,background:"transparent",border:"1px solid "+T.br,borderRadius:9,color:T.mt,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>
-                Ακύρωση
-              </button>
-              <button onClick={onDelete}
-                style={{flex:1,padding:10,background:"#ef4444",border:"none",borderRadius:9,color:"#fff",fontWeight:700,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>
-                Διαγραφή
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </Modal>
-  );
 }
 
 // ── Main App ──────────────────────────────────────────────────────────────────
@@ -733,6 +570,7 @@ export default function FuelLog() {
 
   // Styles
   const iS=on=>({width:"100%",padding:"12px 14px",background:T.inp,border:"1.5px solid "+(on?col+"cc":T.ib),borderRadius:12,color:T.tx,fontSize:14,boxSizing:"border-box",outline:"none",fontFamily:"inherit"});
+  const onFocus=e=>setTimeout(()=>e.target.scrollIntoView({behavior:"smooth",block:"center"}),300);
   const lS={display:"block",fontSize:11,color:T.mt,letterSpacing:"0.08em",marginBottom:5,fontWeight:600};
   const curSt=STATIONS.find(s=>s.id===fuelForm.stId);
   const prevCons=(fuelForm.km&&fuelForm.liters)?(parseFloat(fuelForm.liters)/parseFloat(fuelForm.km)*100).toFixed(1):null;
@@ -870,13 +708,13 @@ export default function FuelLog() {
             )}
 
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div><label style={lS}>ΛΙΤΡΑ</label><input type="number" step="any" placeholder="π.χ. 40" value={fuelForm.liters} onChange={e=>hff("liters",e.target.value)} style={iS(!!fuelForm.liters)}/></div>
-              <div><label style={lS}>ΤΙΜΗ / L (€)</label><input type="number" step="any" placeholder="π.χ. 1.789" value={fuelForm.ppl} onChange={e=>hff("ppl",e.target.value)} style={iS(!!fuelForm.ppl)}/></div>
+              <div><label style={lS}>ΛΙΤΡΑ</label><input type="number" step="any" placeholder="π.χ. 40" value={fuelForm.liters} onFocus={onFocus} onChange={e=>hff("liters",e.target.value)} style={iS(!!fuelForm.liters)}/></div>
+              <div><label style={lS}>ΤΙΜΗ / L (€)</label><input type="number" step="any" placeholder="π.χ. 1.789" value={fuelForm.ppl} onFocus={onFocus} onChange={e=>hff("ppl",e.target.value)} style={iS(!!fuelForm.ppl)}/></div>
             </div>
 
             <div>
               <label style={lS}>ΣΥΝΟΛΙΚΟ ΠΟΣΟ (€)</label>
-              <input type="number" step="any" placeholder="π.χ. 70.00" value={fuelForm.total} onChange={e=>hff("total",e.target.value)}
+              <input type="number" step="any" placeholder="π.χ. 70.00" value={fuelForm.total} onFocus={onFocus} onChange={e=>hff("total",e.target.value)}
                 style={{...iS(!!fuelForm.total),fontSize:16,fontWeight:600}}/>
             </div>
 
@@ -894,11 +732,11 @@ export default function FuelLog() {
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <div>
                 <label style={lS}>{"ΧΙΛΙΟΜΕΤΡΑ ΔΙΑΔΡΟΜΗΣ"}</label>
-                <input type="number" placeholder="π.χ. 450" value={fuelForm.km} onChange={e=>hff("km",e.target.value)} style={iS(!!fuelForm.km)}/>
+                <input type="number" placeholder="π.χ. 450" value={fuelForm.km} onFocus={onFocus} onChange={e=>hff("km",e.target.value)} style={iS(!!fuelForm.km)}/>
               </div>
               <div>
                 <label style={lS}>ΧΙΛΙΟΜΕΤΡΗΤΗΣ</label>
-                <input type="number" placeholder="π.χ. 52300" value={fuelForm.odo} onChange={e=>hff("odo",e.target.value)} style={iS(!!fuelForm.odo)}/>
+                <input type="number" placeholder="π.χ. 52300" value={fuelForm.odo} onFocus={onFocus} onChange={e=>hff("odo",e.target.value)} style={iS(!!fuelForm.odo)}/>
               </div>
             </div>
 
