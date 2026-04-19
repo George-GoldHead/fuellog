@@ -71,8 +71,20 @@ const fmt   = (n, d=2) => n != null ? (+n).toFixed(d) : "—";
 const today = () => new Date().toISOString().split("T")[0];
 const ddiff = ds => Math.round((new Date(ds) - new Date()) / 86400000);
 
+// DARK THEME
 const DK = { bg:"#080810", sf:"#10101c", br:"#1e1e30", tx:"#eeeeff", mt:"#7777aa", ft:"#33334a", inp:"#0d0d1a", ib:"#1e1e30" };
-const LT = { bg:"#eef0fb", sf:"#ffffff",  br:"#d8daf0", tx:"#0d0d1a", mt:"#5555aa", ft:"#9090bb", inp:"#ffffff", ib:"#c5c8e8" };
+
+// CREAM WARM LIGHT THEME (νέο, απαλό για τα μάτια)
+const LT = { 
+  bg: "#f5efe6",      // cream background
+  sf: "#fefaf5",      // warm white cards
+  br: "#e6dccf",      // soft beige border
+  tx: "#2c241a",      // dark warm text
+  mt: "#8a7a66",      // muted warm gray
+  ft: "#c4b8a8",      // faint warm
+  inp: "#ffffff",     // pure white inputs
+  ib: "#e6dccf"       // input border
+};
 
 const defV = () => ({
   id:"v1", name:"Αυτοκίνητο 1", icon:"🚗", color:"#3b82f6", category:"car",
@@ -635,7 +647,7 @@ export default function FuelLog() {
   const showPrev=!!(fuelForm.liters||fuelForm.ppl||fuelForm.total||fuelForm.km);
 
   const TABS = [
-    {id:"home",    label:"🏠 Αρχική",   color:"#f97316"},
+    {id:"home",    label:"🏠 Αρχική",   color:"#d97706"},
     {id:"add",     label:"⛽ Καύσιμα",   color:"#3b82f6"},
     {id:"expenses",label:"💸 Έξοδα",    color:"#10b981"},
     {id:"stats",   label:"📊 Στατιστικά",color:"#8b5cf6"},
@@ -722,8 +734,8 @@ export default function FuelLog() {
           {TABS.map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id)} style={{
               flex:1,padding:"9px 4px",border:"none",borderRadius:"10px 10px 0 0",
-              background:tab===t.id?t.color:"transparent",
-              color:tab===t.id?"#fff":T.mt,
+              background:tab===t.id ? (dark ? t.color : t.color+"22") : "transparent",
+              color:tab===t.id ? (dark ? "#fff" : t.color) : T.mt,
               fontWeight:tab===t.id?700:400,fontSize:10,cursor:"pointer",
               transition:"all .15s",fontFamily:"inherit",letterSpacing:"0.02em",
               borderBottom:tab===t.id?"none":"1px solid "+T.br,
@@ -930,21 +942,81 @@ export default function FuelLog() {
             ) : (
               <div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-                  {[
-                    ["💰","Συνολικά έξοδα", stats.totalSpent?fmt(stats.totalSpent)+"€":"—", GRAD_COLS[0], null],
-                    ["⛽","Καύσιμα",         stats.fuelSpent ?fmt(stats.fuelSpent)+"€" :"—", GRAD_COLS[1], "↑"],
-                    ["🔥","Μέση κατανάλωση",stats.aC        ?fmt(stats.aC,1)+"L/100"  :"—", GRAD_COLS[2], "↓"],
-                    ["📈","Μέση τιμή/L",     stats.aP        ?fmt(stats.aP,3)+"€"      :"—", GRAD_COLS[3], "↑"],
-                    ["🔧","Άλλα έξοδα",     stats.expSpent  ?fmt(stats.expSpent)+"€"  :"—", GRAD_COLS[4], null],
-                    ["💧","Συνολικά λίτρα",  stats.tL        ?fmt(stats.tL,1)+"L"      :"—", GRAD_COLS[5], "↑"],
-                  ].map(([ic,lb,val,gc,trend])=>(
-                    <div key={lb} style={{borderRadius:16,padding:14,position:"relative",overflow:"hidden",background:"linear-gradient(135deg,"+gc+"33,"+gc+"08)",border:"1.5px solid "+gc+"44",boxShadow:"0 2px 16px "+gc+"18"}}>
-                      <div style={{fontSize:22,marginBottom:6}}>{ic}</div>
-                      <div style={{fontSize:18,fontWeight:800,color:gc,letterSpacing:"-0.5px"}}>{val}</div>
-                      <div style={{fontSize:11,color:T.mt,marginTop:3,fontWeight:500}}>{lb}</div>
-                      {trend&&<div style={{position:"absolute",top:10,right:10,fontSize:13,fontWeight:800,color:trend==="↑"?"#ef4444":"#10b981",background:(trend==="↑"?"#ef4444":"#10b981")+"22",borderRadius:6,padding:"2px 6px"}}>{trend}</div>}
+                  {/* Κάρτα 1 - Συνολικά έξοδα */}
+                  <div style={{borderRadius:16,padding:14,position:"relative",overflow:"hidden",
+                    background:"linear-gradient(135deg,"+GRAD_COLS[0]+"15,"+GRAD_COLS[0]+"04)",
+                    border:"1.5px solid "+GRAD_COLS[0]+"33",boxShadow:"0 2px 16px "+GRAD_COLS[0]+"18"}}>
+                    <div style={{fontSize:22,marginBottom:6}}>💰</div>
+                    <div style={{fontSize:18,fontWeight:800,color:GRAD_COLS[0],letterSpacing:"-0.5px"}}>
+                      {stats.totalSpent?fmt(stats.totalSpent)+"€":"—"}
                     </div>
-                  ))}
+                    <div style={{fontSize:11,color:T.mt,marginTop:3,fontWeight:500}}>Συνολικά έξοδα</div>
+                  </div>
+
+                  {/* Κάρτα 2 - Καύσιμα */}
+                  <div style={{borderRadius:16,padding:14,position:"relative",overflow:"hidden",
+                    background:"linear-gradient(135deg,"+GRAD_COLS[1]+"15,"+GRAD_COLS[1]+"04)",
+                    border:"1.5px solid "+GRAD_COLS[1]+"33",boxShadow:"0 2px 16px "+GRAD_COLS[1]+"18"}}>
+                    <div style={{fontSize:22,marginBottom:6}}>⛽</div>
+                    <div style={{fontSize:18,fontWeight:800,color:GRAD_COLS[1],letterSpacing:"-0.5px"}}>
+                      {stats.fuelSpent?fmt(stats.fuelSpent)+"€":"—"}
+                    </div>
+                    <div style={{fontSize:11,color:T.mt,marginTop:3,fontWeight:500}}>Καύσιμα</div>
+                    <div style={{position:"absolute",top:10,right:10,fontSize:13,fontWeight:800,color:"#ef4444",background:"#ef444422",borderRadius:6,padding:"2px 6px"}}>↑</div>
+                  </div>
+
+                  {/* Κάρτα 3 - Μέση κατανάλωση */}
+                  <div style={{borderRadius:16,padding:14,position:"relative",overflow:"hidden",
+                    background:"linear-gradient(135deg,"+GRAD_COLS[2]+"15,"+GRAD_COLS[2]+"04)",
+                    border:"1.5px solid "+GRAD_COLS[2]+"33",boxShadow:"0 2px 16px "+GRAD_COLS[2]+"18"}}>
+                    <div style={{fontSize:22,marginBottom:6}}>🔥</div>
+                    <div style={{fontSize:18,fontWeight:800,color:GRAD_COLS[2],letterSpacing:"-0.5px"}}>
+                      {stats.aC?fmt(stats.aC,1)+"L/100":"—"}
+                    </div>
+                    <div style={{fontSize:11,color:T.mt,marginTop:3,fontWeight:500}}>Μέση κατανάλωση</div>
+                    <div style={{position:"absolute",top:10,right:10,fontSize:13,fontWeight:800,color:"#10b981",background:"#10b98122",borderRadius:6,padding:"2px 6px"}}>↓</div>
+                  </div>
+
+                  {/* Κάρτα 4 - Μέση τιμή/L */}
+                  <div style={{borderRadius:16,padding:14,position:"relative",overflow:"hidden",
+                    background:"linear-gradient(135deg,"+GRAD_COLS[3]+"15,"+GRAD_COLS[3]+"04)",
+                    border:"1.5px solid "+GRAD_COLS[3]+"33",boxShadow:"0 2px 16px "+GRAD_COLS[3]+"18"}}>
+                    <div style={{fontSize:22,marginBottom:6}}>📈</div>
+                    <div style={{fontSize:18,fontWeight:800,color:GRAD_COLS[3],letterSpacing:"-0.5px"}}>
+                      {stats.aP?fmt(stats.aP,3)+"€":"—"}
+                    </div>
+                    <div style={{fontSize:11,color:T.mt,marginTop:3,fontWeight:500}}>Μέση τιμή/L</div>
+                    <div style={{position:"absolute",top:10,right:10,fontSize:13,fontWeight:800,color:"#ef4444",background:"#ef444422",borderRadius:6,padding:"2px 6px"}}>↑</div>
+                  </div>
+
+                  {/* Κάρτα 5 - Άλλα έξοδα (CLICKABLE) */}
+                  <div 
+                    onClick={() => setTab("expenses")}
+                    style={{cursor:"pointer",borderRadius:16,padding:14,position:"relative",overflow:"hidden",
+                      background:"linear-gradient(135deg,"+GRAD_COLS[4]+"15,"+GRAD_COLS[4]+"04)",
+                      border:"1.5px solid "+GRAD_COLS[4]+"33",boxShadow:"0 2px 16px "+GRAD_COLS[4]+"18",
+                      transition:"transform 0.1s"}}
+                    onMouseEnter={e => e.currentTarget.style.transform = "scale(0.98)"}
+                    onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
+                    <div style={{fontSize:22,marginBottom:6}}>🔧</div>
+                    <div style={{fontSize:18,fontWeight:800,color:GRAD_COLS[4],letterSpacing:"-0.5px"}}>
+                      {stats.expSpent?fmt(stats.expSpent)+"€":"—"}
+                    </div>
+                    <div style={{fontSize:11,color:T.mt,marginTop:3,fontWeight:500}}>Άλλα έξοδα</div>
+                    <div style={{position:"absolute",top:10,right:10,fontSize:14,opacity:0.6}}>👉</div>
+                  </div>
+
+                  {/* Κάρτα 6 - Συνολικά λίτρα */}
+                  <div style={{borderRadius:16,padding:14,position:"relative",overflow:"hidden",
+                    background:"linear-gradient(135deg,"+GRAD_COLS[5]+"15,"+GRAD_COLS[5]+"04)",
+                    border:"1.5px solid "+GRAD_COLS[5]+"33",boxShadow:"0 2px 16px "+GRAD_COLS[5]+"18"}}>
+                    <div style={{fontSize:22,marginBottom:6}}>💧</div>
+                    <div style={{fontSize:18,fontWeight:800,color:GRAD_COLS[5],letterSpacing:"-0.5px"}}>
+                      {stats.tL?fmt(stats.tL,1)+"L":"—"}
+                    </div>
+                    <div style={{fontSize:11,color:T.mt,marginTop:3,fontWeight:500}}>Συνολικά λίτρα</div>
+                    <div style={{position:"absolute",top:10,right:10,fontSize:13,fontWeight:800,color:"#ef4444",background:"#ef444422",borderRadius:6,padding:"2px 6px"}}>↑</div>
+                  </div>
                 </div>
                 {stats.aLC&&(
                   <div style={{background:T.bg,borderRadius:14,padding:14,marginBottom:12,border:"2px solid #a78bfa44"}}>
