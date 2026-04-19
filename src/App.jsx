@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+    import { useState, useMemo, useRef, useEffect } from "react";
 
 const FUEL_COLORS = ["#f97316","#3b82f6","#10b981","#e11d48","#8b5cf6","#06b6d4","#eab308","#ec4899"];
 const GRAD_COLS   = ["#f97316","#3b82f6","#10b981","#f97316","#8b5cf6","#06b6d4"];
@@ -95,7 +95,7 @@ function RoundCyberGauge({ value, min, max, color, label, unit, T }) {
   if (value == null) return null;
   
   const pct = Math.min(1, Math.max(0, (value - min) / (max - min || 1)));
-  const R = 80, cx = 100, cy = 100;
+  const R = 55, cx = 70, cy = 70;
   const startA = Math.PI * 0.7;
   const endA = Math.PI * 2.3;
   const totalA = endA - startA;
@@ -115,41 +115,41 @@ function RoundCyberGauge({ value, min, max, color, label, unit, T }) {
     const t = i / 10;
     const angle = startA + totalA * t;
     const isMajor = i % 2 === 0;
-    const tickLen = isMajor ? 12 : 6;
-    const r1 = R - 8;
+    const tickLen = isMajor ? 8 : 4;
+    const r1 = R - 6;
     const r2 = r1 - tickLen;
     const x1 = cx + r1 * Math.cos(angle);
     const y1 = cy + r1 * Math.sin(angle);
     const x2 = cx + r2 * Math.cos(angle);
     const y2 = cy + r2 * Math.sin(angle);
     ticks.push(
-      <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={isMajor ? 2 : 1} opacity={0.6}/>
+      <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={isMajor ? 1.5 : 1} opacity={0.6}/>
     );
     
-    if (isMajor) {
+    if (isMajor && i % 2 === 0) {
       const val = min + (max - min) * t;
-      const rText = R - 22;
+      const rText = R - 16;
       const xText = cx + rText * Math.cos(angle);
       const yText = cy + rText * Math.sin(angle);
       ticks.push(
-        <text key={`t${i}`} x={xText} y={yText} textAnchor="middle" dominantBaseline="middle" fill={T.mt} fontSize={9} fontFamily="'Orbitron', monospace">
+        <text key={`t${i}`} x={xText} y={yText} textAnchor="middle" dominantBaseline="middle" fill={T.mt} fontSize={7} fontFamily="'Orbitron', monospace">
           {val.toFixed(val > 10 ? 0 : 2)}
         </text>
       );
     }
   }
   
-  const needleX = cx + (R - 20) * Math.cos(valA);
-  const needleY = cy + (R - 20) * Math.sin(valA);
-  const formattedValue = value.toFixed(value > 10 ? 1 : 3);
+  const needleX = cx + (R - 14) * Math.cos(valA);
+  const needleY = cy + (R - 14) * Math.sin(valA);
+  const formattedValue = value.toFixed(value > 10 ? 1 : 2);
   
   return (
     <div style={{
       background: "#0a0a0f",
       borderRadius: "50%",
-      padding: 16,
-      border: `3px solid ${color}`,
-      boxShadow: `0 0 25px ${color}66`,
+      padding: 8,
+      border: `2px solid ${color}`,
+      boxShadow: `0 0 15px ${color}66`,
       position: "relative",
       width: "100%",
       aspectRatio: "1 / 1",
@@ -162,46 +162,46 @@ function RoundCyberGauge({ value, min, max, color, label, unit, T }) {
         inset: 0,
         borderRadius: "50%",
         backgroundImage: "radial-gradient(rgba(0,255,0,0.03) 1px, transparent 1px)",
-        backgroundSize: "12px 12px",
+        backgroundSize: "10px 10px",
         pointerEvents: "none"
       }}/>
       
-      <svg viewBox="0 0 200 200" style={{width: "100%", height: "100%", display: "block"}}>
-        <path d={arcPath(R, startA, endA)} fill="none" stroke={T.br} strokeWidth={12} strokeLinecap="round"/>
-        <path d={arcPath(R, startA, valA)} fill="none" stroke={color} strokeWidth={12} strokeLinecap="round"/>
+      <svg viewBox="0 0 140 140" style={{width: "100%", height: "100%", display: "block"}}>
+        <path d={arcPath(R, startA, endA)} fill="none" stroke={T.br} strokeWidth={8} strokeLinecap="round"/>
+        <path d={arcPath(R, startA, valA)} fill="none" stroke={color} strokeWidth={8} strokeLinecap="round"/>
         {ticks}
-        <line x1={cx} y1={cy} x2={needleX} y2={needleY} stroke={color} strokeWidth={2.5} strokeLinecap="round"/>
-        <circle cx={cx} cy={cy} r={6} fill={color} opacity={0.8}/>
-        <circle cx={cx} cy={cy} r={3} fill="#000"/>
+        <line x1={cx} y1={cy} x2={needleX} y2={needleY} stroke={color} strokeWidth={2} strokeLinecap="round"/>
+        <circle cx={cx} cy={cy} r={5} fill={color} opacity={0.8}/>
+        <circle cx={cx} cy={cy} r={2.5} fill="#000"/>
         
-        <rect x={cx - 35} y={cy - 15} width={70} height={28} rx={6} fill="#000" stroke={color} strokeWidth={1.5} opacity={0.9}/>
-        <text x={cx} y={cy + 3} textAnchor="middle" fill={color} fontSize={16} fontWeight="800" fontFamily="'Orbitron', monospace">
+        <rect x={cx - 28} y={cy - 12} width={56} height={22} rx={4} fill="#000" stroke={color} strokeWidth={1} opacity={0.9}/>
+        <text x={cx} y={cy + 2} textAnchor="middle" fill={color} fontSize={12} fontWeight="800" fontFamily="'Orbitron', monospace">
           {formattedValue}
         </text>
-        <text x={cx} y={cy + 16} textAnchor="middle" fill={T.mt} fontSize={7} fontFamily="'Orbitron', monospace">
+        <text x={cx} y={cy + 12} textAnchor="middle" fill={T.mt} fontSize={5} fontFamily="'Orbitron', monospace">
           {unit}
         </text>
       </svg>
       
       <div style={{
         position: "absolute",
-        bottom: 12,
+        bottom: 6,
         left: 0,
         right: 0,
         textAlign: "center",
-        fontSize: 9,
+        fontSize: 7,
         color: color,
-        letterSpacing: 2,
+        letterSpacing: 1.5,
         fontFamily: "'Orbitron', monospace",
         fontWeight: 700
       }}>
         {label}
       </div>
       
-      <div style={{ position: "absolute", top: 6, left: 6, width: 14, height: 14, borderTop: `2px solid ${color}`, borderLeft: `2px solid ${color}` }}/>
-      <div style={{ position: "absolute", top: 6, right: 6, width: 14, height: 14, borderTop: `2px solid ${color}`, borderRight: `2px solid ${color}` }}/>
-      <div style={{ position: "absolute", bottom: 6, left: 6, width: 14, height: 14, borderBottom: `2px solid ${color}`, borderLeft: `2px solid ${color}` }}/>
-      <div style={{ position: "absolute", bottom: 6, right: 6, width: 14, height: 14, borderBottom: `2px solid ${color}`, borderRight: `2px solid ${color}` }}/>
+      <div style={{ position: "absolute", top: 4, left: 4, width: 10, height: 10, borderTop: `1.5px solid ${color}`, borderLeft: `1.5px solid ${color}` }}/>
+      <div style={{ position: "absolute", top: 4, right: 4, width: 10, height: 10, borderTop: `1.5px solid ${color}`, borderRight: `1.5px solid ${color}` }}/>
+      <div style={{ position: "absolute", bottom: 4, left: 4, width: 10, height: 10, borderBottom: `1.5px solid ${color}`, borderLeft: `1.5px solid ${color}` }}/>
+      <div style={{ position: "absolute", bottom: 4, right: 4, width: 10, height: 10, borderBottom: `1.5px solid ${color}`, borderRight: `1.5px solid ${color}` }}/>
     </div>
   );
 }
@@ -512,6 +512,7 @@ export default function FuelLog() {
   const [filterStation, setFilterStation] = useState("all");
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
   const [showFilters, setShowFilters] = useState(false);
+  const [expenseGroupBy, setExpenseGroupBy] = useState("month"); // month, category, none
   const fref = useRef();
 
   useEffect(() => {
@@ -807,13 +808,13 @@ export default function FuelLog() {
   );
 
   return (
-    <div style={{fontFamily:"'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif",minHeight:"100vh",background:T.bg,color:T.tx,maxWidth:480,margin:"0 auto"}}>
+    <div style={{fontFamily:"'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif",minHeight:"100vh",background:T.bg,color:T.tx,maxWidth:480,margin:"0 auto",height:"100vh",display:"flex",flexDirection:"column"}}>
 
-      <div style={{background:T.sf,borderBottom:"1px solid "+T.br,padding:"16px 16px 0",position:"sticky",top:0,zIndex:10}}>
+      <div style={{background:T.sf,borderBottom:"1px solid "+T.br,padding:"16px 16px 0",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#f97316,#3b82f6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>⛽</div>
-            <div><div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.5px",color:T.tx}}>FuelLog v2.1</div></div>
+            <div><div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.5px",color:T.tx}}>FuelLog v2.2</div></div>
           </div>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
             {dueR.length>0 && (
@@ -851,7 +852,7 @@ export default function FuelLog() {
         </div>
       </div>
 
-      <div style={{background:T.sf,padding:"18px 16px 100px",minHeight:"70vh"}}>
+      <div style={{background:T.sf,padding:"16px 16px 20px",flex:1,overflowY:"auto"}}>
 
         {tab === "home" && (
           <div>
@@ -1003,6 +1004,12 @@ export default function FuelLog() {
 
         {tab === "expenses" && (
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            <div style={{display:"flex",gap:8,marginBottom:8}}>
+              <button onClick={() => setExpenseGroupBy("month")} style={{flex:1,padding:"8px 0",borderRadius:8,border:`1.5px solid ${expenseGroupBy === "month" ? "#10b981" : T.br}`,background:expenseGroupBy === "month" ? "#10b98122" : "transparent",color:expenseGroupBy === "month" ? "#10b981" : T.mt,fontSize:11,cursor:"pointer"}}>📅 Ανά μήνα</button>
+              <button onClick={() => setExpenseGroupBy("category")} style={{flex:1,padding:"8px 0",borderRadius:8,border:`1.5px solid ${expenseGroupBy === "category" ? "#f97316" : T.br}`,background:expenseGroupBy === "category" ? "#f9731622" : "transparent",color:expenseGroupBy === "category" ? "#f97316" : T.mt,fontSize:11,cursor:"pointer"}}>🏷️ Ανά κατηγορία</button>
+              <button onClick={() => setExpenseGroupBy("none")} style={{flex:1,padding:"8px 0",borderRadius:8,border:`1.5px solid ${expenseGroupBy === "none" ? "#8b5cf6" : T.br}`,background:expenseGroupBy === "none" ? "#8b5cf622" : "transparent",color:expenseGroupBy === "none" ? "#8b5cf6" : T.mt,fontSize:11,cursor:"pointer"}}>📋 Κανονική</button>
+            </div>
+
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <div><label style={lS}>ΗΜΕΡΟΜΗΝΙΑ</label><input type="date" value={expenseForm.date} onChange={e=>setExpenseForm({...expenseForm,date:e.target.value})} style={iS(true)}/></div>
               <div><label style={lS}>ΠΟΣΟ €</label><input type="number" step="any" value={expenseForm.amount} onChange={e=>setExpenseForm({...expenseForm,amount:e.target.value})} style={iS(!!expenseForm.amount)}/></div>
@@ -1017,22 +1024,93 @@ export default function FuelLog() {
             {expenseForm.catId==="custom"&&(<div><label style={lS}>ΠΕΡΙΓΡΑΦΗ</label><input placeholder="π.χ. Μπαταρία..." value={expenseForm.customCat||""} onChange={e=>setExpenseForm({...expenseForm,customCat:e.target.value})} style={iS(true)}/></div>)}
             <div><label style={lS}>ΣΗΜΕΙΩΣΕΙΣ</label><input type="text" placeholder="π.χ. Castrol 5W40..." value={expenseForm.notes} onChange={e=>setExpenseForm({...expenseForm,notes:e.target.value})} style={iS(false)}/></div>
             <button onClick={submitExpense} style={{padding:15,background:"linear-gradient(135deg,#10b981,#059669)",color:"#fff",border:"none",borderRadius:14,fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 4px 20px #10b98155"}}>ΠΡΟΣΘΗΚΗ ΕΞΟΔΟΥ</button>
+            
             <div style={{marginTop:4}}>
-              {allExpense.slice().reverse().map(ex=>{
-                const cat=EXPENSE_CATS.find(c=>c.id===ex.catId);
-                return (
-                  <div key={ex.id} onClick={()=>setEditExpense({...ex})} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 4px",borderBottom:"1px solid "+T.br,cursor:"pointer",borderRadius:8}}>
-                    <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <span style={{fontSize:22,width:32,textAlign:"center"}}>{cat?.icon||"💸"}</span>
-                      <div><div style={{fontSize:13,fontWeight:700,color:T.tx}}>{ex.label}</div><div style={{fontSize:11,color:T.mt}}>{ex.date}{ex.notes?" · "+ex.notes:""}</div></div>
+              {expenseGroupBy === "none" && (
+                allExpense.slice().reverse().map(ex => {
+                  const cat = EXPENSE_CATS.find(c => c.id === ex.catId);
+                  return (
+                    <div key={ex.id} onClick={() => setEditExpense({...ex})} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 4px",borderBottom:"1px solid "+T.br,cursor:"pointer",borderRadius:8}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                        <span style={{fontSize:22,width:32,textAlign:"center"}}>{cat?.icon||"💸"}</span>
+                        <div><div style={{fontSize:13,fontWeight:700,color:T.tx}}>{ex.label}</div><div style={{fontSize:11,color:T.mt}}>{ex.date}{ex.notes?" · "+ex.notes:""}</div></div>
+                      </div>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                        <span style={{fontWeight:800,color:"#ef4444",fontSize:14}}>-€{fmt(ex.amount)}</span>
+                        <button onClick={e=>{e.stopPropagation();delExpense(ex.id);}} style={{background:"none",border:"none",color:T.ft,cursor:"pointer",fontSize:18}}>✕</button>
+                      </div>
                     </div>
-                    <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <span style={{fontWeight:800,color:"#ef4444",fontSize:14}}>-€{fmt(ex.amount)}</span>
-                      <button onClick={e=>{e.stopPropagation();delExpense(ex.id);}} style={{background:"none",border:"none",color:T.ft,cursor:"pointer",fontSize:18}}>✕</button>
+                  );
+                })
+              )}
+              
+              {expenseGroupBy === "month" && (() => {
+                const grouped = allExpense.slice().reverse().reduce((acc, ex) => {
+                  const monthKey = ex.date.slice(0, 7);
+                  const monthName = new Date(ex.date).toLocaleDateString('el-GR', { month: 'long', year: 'numeric' });
+                  if (!acc[monthKey]) acc[monthKey] = { name: monthName, items: [], total: 0 };
+                  acc[monthKey].items.push(ex);
+                  acc[monthKey].total += ex.amount;
+                  return acc;
+                }, {});
+                return Object.entries(grouped).map(([key, month]) => (
+                  <div key={key} style={{ marginBottom: 16 }}>
+                    <div style={{ background: T.bg, borderRadius: 10, padding: "8px 12px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", borderLeft: `3px solid #10b981` }}>
+                      <span style={{ fontWeight: 700, fontSize: 13, color: T.tx }}>📅 {month.name}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#ef4444" }}>€{fmt(month.total)}</span>
                     </div>
+                    {month.items.map(ex => {
+                      const cat = EXPENSE_CATS.find(c => c.id === ex.catId);
+                      return (
+                        <div key={ex.id} onClick={() => setEditExpense({...ex})} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 4px 10px 12px", borderBottom: "1px solid " + T.br, cursor: "pointer", borderRadius: 8, marginLeft: 8 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span style={{ fontSize: 20, width: 28, textAlign: "center" }}>{cat?.icon || "💸"}</span>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: T.tx }}>{ex.label}</div>
+                              <div style={{ fontSize: 10, color: T.mt }}>{ex.date.slice(5)}/{ex.date.slice(0,4)}{ex.notes ? " · " + ex.notes : ""}</div>
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span style={{ fontWeight: 800, color: "#ef4444", fontSize: 13 }}>-€{fmt(ex.amount)}</span>
+                            <button onClick={e=>{e.stopPropagation();delExpense(ex.id);}} style={{ background: "none", border: "none", color: T.ft, cursor: "pointer", fontSize: 16 }}>✕</button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                ));
+              })()}
+              
+              {expenseGroupBy === "category" && (() => {
+                const grouped = allExpense.slice().reverse().reduce((acc, ex) => {
+                  const cat = EXPENSE_CATS.find(c => c.id === ex.catId);
+                  const catLabel = cat?.label || ex.label || "Άλλο";
+                  if (!acc[catLabel]) acc[catLabel] = { icon: cat?.icon || "💸", items: [], total: 0 };
+                  acc[catLabel].items.push(ex);
+                  acc[catLabel].total += ex.amount;
+                  return acc;
+                }, {});
+                return Object.entries(grouped).map(([catLabel, cat]) => (
+                  <div key={catLabel} style={{ marginBottom: 16 }}>
+                    <div style={{ background: T.bg, borderRadius: 10, padding: "8px 12px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", borderLeft: `3px solid #f97316` }}>
+                      <span style={{ fontWeight: 700, fontSize: 13, color: T.tx }}>{cat.icon} {catLabel}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#ef4444" }}>€{fmt(cat.total)}</span>
+                    </div>
+                    {cat.items.map(ex => (
+                      <div key={ex.id} onClick={() => setEditExpense({...ex})} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 4px 10px 12px", borderBottom: "1px solid " + T.br, cursor: "pointer", borderRadius: 8, marginLeft: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 12, color: T.tx }}>{ex.date}</div>
+                          {ex.notes && <div style={{ fontSize: 10, color: T.mt }}>{ex.notes}</div>}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ fontWeight: 800, color: "#ef4444", fontSize: 13 }}>-€{fmt(ex.amount)}</span>
+                          <button onClick={e=>{e.stopPropagation();delExpense(ex.id);}} style={{ background: "none", border: "none", color: T.ft, cursor: "pointer", fontSize: 16 }}>✕</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ));
+              })()}
             </div>
           </div>
         )}
@@ -1049,85 +1127,44 @@ export default function FuelLog() {
             ) : (
               <div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-                  {/* Κάρτα 1 - Συνολικά έξοδα */}
-                  <div style={{borderRadius:16,padding:14,position:"relative",overflow:"hidden",
-                    background:"linear-gradient(135deg,"+GRAD_COLS[0]+"15,"+GRAD_COLS[0]+"04)",
-                    border:"1.5px solid "+GRAD_COLS[0]+"33",boxShadow:"0 2px 16px "+GRAD_COLS[0]+"18"}}>
+                  <div style={{borderRadius:16,padding:14,position:"relative",overflow:"hidden",background:"linear-gradient(135deg,"+GRAD_COLS[0]+"15,"+GRAD_COLS[0]+"04)",border:"1.5px solid "+GRAD_COLS[0]+"33",boxShadow:"0 2px 16px "+GRAD_COLS[0]+"18"}}>
                     <div style={{fontSize:22,marginBottom:6}}>💰</div>
-                    <div style={{fontSize:18,fontWeight:800,color:GRAD_COLS[0],letterSpacing:"-0.5px"}}>
-                      {stats.totalSpent?fmt(stats.totalSpent)+"€":"—"}
-                    </div>
+                    <div style={{fontSize:18,fontWeight:800,color:GRAD_COLS[0],letterSpacing:"-0.5px"}}>{stats.totalSpent?fmt(stats.totalSpent)+"€":"—"}</div>
                     <div style={{fontSize:11,color:T.mt,marginTop:3,fontWeight:500}}>Συνολικά έξοδα</div>
                   </div>
-
-                  {/* Κάρτα 2 - Καύσιμα */}
-                  <div style={{borderRadius:16,padding:14,position:"relative",overflow:"hidden",
-                    background:"linear-gradient(135deg,"+GRAD_COLS[1]+"15,"+GRAD_COLS[1]+"04)",
-                    border:"1.5px solid "+GRAD_COLS[1]+"33",boxShadow:"0 2px 16px "+GRAD_COLS[1]+"18"}}>
+                  <div style={{borderRadius:16,padding:14,position:"relative",overflow:"hidden",background:"linear-gradient(135deg,"+GRAD_COLS[1]+"15,"+GRAD_COLS[1]+"04)",border:"1.5px solid "+GRAD_COLS[1]+"33",boxShadow:"0 2px 16px "+GRAD_COLS[1]+"18"}}>
                     <div style={{fontSize:22,marginBottom:6}}>⛽</div>
-                    <div style={{fontSize:18,fontWeight:800,color:GRAD_COLS[1],letterSpacing:"-0.5px"}}>
-                      {stats.fuelSpent?fmt(stats.fuelSpent)+"€":"—"}
-                    </div>
+                    <div style={{fontSize:18,fontWeight:800,color:GRAD_COLS[1],letterSpacing:"-0.5px"}}>{stats.fuelSpent?fmt(stats.fuelSpent)+"€":"—"}</div>
                     <div style={{fontSize:11,color:T.mt,marginTop:3,fontWeight:500}}>Καύσιμα</div>
                     <div style={{position:"absolute",top:10,right:10,fontSize:13,fontWeight:800,color:"#ef4444",background:"#ef444422",borderRadius:6,padding:"2px 6px"}}>↑</div>
                   </div>
-
-                  {/* Κάρτα 3 - Μέση κατανάλωση */}
-                  <div style={{borderRadius:16,padding:14,position:"relative",overflow:"hidden",
-                    background:"linear-gradient(135deg,"+GRAD_COLS[2]+"15,"+GRAD_COLS[2]+"04)",
-                    border:"1.5px solid "+GRAD_COLS[2]+"33",boxShadow:"0 2px 16px "+GRAD_COLS[2]+"18"}}>
+                  <div style={{borderRadius:16,padding:14,position:"relative",overflow:"hidden",background:"linear-gradient(135deg,"+GRAD_COLS[2]+"15,"+GRAD_COLS[2]+"04)",border:"1.5px solid "+GRAD_COLS[2]+"33",boxShadow:"0 2px 16px "+GRAD_COLS[2]+"18"}}>
                     <div style={{fontSize:22,marginBottom:6}}>🔥</div>
-                    <div style={{fontSize:18,fontWeight:800,color:GRAD_COLS[2],letterSpacing:"-0.5px"}}>
-                      {stats.aC?fmt(stats.aC,1)+"L/100":"—"}
-                    </div>
+                    <div style={{fontSize:18,fontWeight:800,color:GRAD_COLS[2],letterSpacing:"-0.5px"}}>{stats.aC?fmt(stats.aC,1)+"L/100":"—"}</div>
                     <div style={{fontSize:11,color:T.mt,marginTop:3,fontWeight:500}}>Μέση κατανάλωση</div>
                     <div style={{position:"absolute",top:10,right:10,fontSize:13,fontWeight:800,color:"#10b981",background:"#10b98122",borderRadius:6,padding:"2px 6px"}}>↓</div>
                   </div>
-
-                  {/* Κάρτα 4 - Μέση τιμή/L */}
-                  <div style={{borderRadius:16,padding:14,position:"relative",overflow:"hidden",
-                    background:"linear-gradient(135deg,"+GRAD_COLS[3]+"15,"+GRAD_COLS[3]+"04)",
-                    border:"1.5px solid "+GRAD_COLS[3]+"33",boxShadow:"0 2px 16px "+GRAD_COLS[3]+"18"}}>
+                  <div style={{borderRadius:16,padding:14,position:"relative",overflow:"hidden",background:"linear-gradient(135deg,"+GRAD_COLS[3]+"15,"+GRAD_COLS[3]+"04)",border:"1.5px solid "+GRAD_COLS[3]+"33",boxShadow:"0 2px 16px "+GRAD_COLS[3]+"18"}}>
                     <div style={{fontSize:22,marginBottom:6}}>📈</div>
-                    <div style={{fontSize:18,fontWeight:800,color:GRAD_COLS[3],letterSpacing:"-0.5px"}}>
-                      {stats.aP?fmt(stats.aP,3)+"€":"—"}
-                    </div>
+                    <div style={{fontSize:18,fontWeight:800,color:GRAD_COLS[3],letterSpacing:"-0.5px"}}>{stats.aP?fmt(stats.aP,3)+"€":"—"}</div>
                     <div style={{fontSize:11,color:T.mt,marginTop:3,fontWeight:500}}>Μέση τιμή/L</div>
                     <div style={{position:"absolute",top:10,right:10,fontSize:13,fontWeight:800,color:"#ef4444",background:"#ef444422",borderRadius:6,padding:"2px 6px"}}>↑</div>
                   </div>
-
-                  {/* Κάρτα 5 - Άλλα έξοδα (CLICKABLE) */}
-                  <div 
-                    onClick={() => setTab("expenses")}
-                    style={{cursor:"pointer",borderRadius:16,padding:14,position:"relative",overflow:"hidden",
-                      background:"linear-gradient(135deg,"+GRAD_COLS[4]+"15,"+GRAD_COLS[4]+"04)",
-                      border:"1.5px solid "+GRAD_COLS[4]+"33",boxShadow:"0 2px 16px "+GRAD_COLS[4]+"18",
-                      transition:"transform 0.1s"}}
-                    onMouseEnter={e => e.currentTarget.style.transform = "scale(0.98)"}
-                    onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
+                  <div onClick={()=>setTab("expenses")} style={{cursor:"pointer",borderRadius:16,padding:14,position:"relative",overflow:"hidden",background:"linear-gradient(135deg,"+GRAD_COLS[4]+"15,"+GRAD_COLS[4]+"04)",border:"1.5px solid "+GRAD_COLS[4]+"33",boxShadow:"0 2px 16px "+GRAD_COLS[4]+"18",transition:"transform 0.1s"}} onMouseEnter={e=>e.currentTarget.style.transform="scale(0.98)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}>
                     <div style={{fontSize:22,marginBottom:6}}>🔧</div>
-                    <div style={{fontSize:18,fontWeight:800,color:GRAD_COLS[4],letterSpacing:"-0.5px"}}>
-                      {stats.expSpent?fmt(stats.expSpent)+"€":"—"}
-                    </div>
+                    <div style={{fontSize:18,fontWeight:800,color:GRAD_COLS[4],letterSpacing:"-0.5px"}}>{stats.expSpent?fmt(stats.expSpent)+"€":"—"}</div>
                     <div style={{fontSize:11,color:T.mt,marginTop:3,fontWeight:500}}>Άλλα έξοδα</div>
                     <div style={{position:"absolute",top:10,right:10,fontSize:14,opacity:0.6}}>👉</div>
                   </div>
-
-                  {/* Κάρτα 6 - Συνολικά λίτρα */}
-                  <div style={{borderRadius:16,padding:14,position:"relative",overflow:"hidden",
-                    background:"linear-gradient(135deg,"+GRAD_COLS[5]+"15,"+GRAD_COLS[5]+"04)",
-                    border:"1.5px solid "+GRAD_COLS[5]+"33",boxShadow:"0 2px 16px "+GRAD_COLS[5]+"18"}}>
+                  <div style={{borderRadius:16,padding:14,position:"relative",overflow:"hidden",background:"linear-gradient(135deg,"+GRAD_COLS[5]+"15,"+GRAD_COLS[5]+"04)",border:"1.5px solid "+GRAD_COLS[5]+"33",boxShadow:"0 2px 16px "+GRAD_COLS[5]+"18"}}>
                     <div style={{fontSize:22,marginBottom:6}}>💧</div>
-                    <div style={{fontSize:18,fontWeight:800,color:GRAD_COLS[5],letterSpacing:"-0.5px"}}>
-                      {stats.tL?fmt(stats.tL,1)+"L":"—"}
-                    </div>
+                    <div style={{fontSize:18,fontWeight:800,color:GRAD_COLS[5],letterSpacing:"-0.5px"}}>{stats.tL?fmt(stats.tL,1)+"L":"—"}</div>
                     <div style={{fontSize:11,color:T.mt,marginTop:3,fontWeight:500}}>Συνολικά λίτρα</div>
                     <div style={{position:"absolute",top:10,right:10,fontSize:13,fontWeight:800,color:"#ef4444",background:"#ef444422",borderRadius:6,padding:"2px 6px"}}>↑</div>
                   </div>
                 </div>
                 
-                {/* ROUND CYBERPUNK GAUGES */}
-                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20}}>
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16}}>
                   <RoundCyberGauge value={stats.aC} min={4} max={20} color="#10b981" label="CONSUMPTION" unit="L/100km" T={T}/>
                   <RoundCyberGauge value={stats.aP} min={1.4} max={2.4} color="#f97316" label="PRICE" unit="€/L" T={T}/>
                 </div>
@@ -1135,10 +1172,7 @@ export default function FuelLog() {
                 {stats.aLC&&(
                   <div style={{background:T.bg,borderRadius:14,padding:14,marginBottom:12,border:"2px solid #a78bfa44"}}>
                     <div style={{fontSize:11,color:"#a78bfa",letterSpacing:"0.08em",fontWeight:700,marginBottom:6}}>🟣 ΔΙΠΛΗ ΚΑΤΑΝΑΛΩΣΗ</div>
-                    <div style={{display:"flex",gap:24}}>
-                      <div><div style={{fontSize:11,color:T.mt}}>Βενζίνη</div><div style={{fontSize:15,fontWeight:700,color:col}}>{fmt(stats.aC,1)} L/100</div></div>
-                      <div><div style={{fontSize:11,color:T.mt}}>LPG</div><div style={{fontSize:15,fontWeight:700,color:"#a78bfa"}}>{fmt(stats.aLC,1)} L/100</div></div>
-                    </div>
+                    <div style={{display:"flex",gap:24}}><div><div style={{fontSize:11,color:T.mt}}>Βενζίνη</div><div style={{fontSize:15,fontWeight:700,color:col}}>{fmt(stats.aC,1)} L/100</div></div><div><div style={{fontSize:11,color:T.mt}}>LPG</div><div style={{fontSize:15,fontWeight:700,color:"#a78bfa"}}>{fmt(stats.aLC,1)} L/100</div></div></div>
                   </div>
                 )}
 
@@ -1164,10 +1198,7 @@ export default function FuelLog() {
                         const cat=EXPENSE_CATS.find(c=>c.label===label);
                         return(
                           <div key={label} style={{marginBottom:10}}>
-                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                              <span style={{fontSize:12,color:T.tx,fontWeight:500}}>{cat?.icon||"💸"} {label}</span>
-                              <span style={{fontSize:12,fontWeight:700,color:"#10b981"}}>{fmt(amount)}€</span>
-                            </div>
+                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{fontSize:12,color:T.tx,fontWeight:500}}>{cat?.icon||"💸"} {label}</span><span style={{fontSize:12,fontWeight:700,color:"#10b981"}}>{fmt(amount)}€</span></div>
                             <div style={{background:T.br,borderRadius:6,height:6}}><div style={{background:"linear-gradient(90deg,#10b981,#3b82f6)",borderRadius:6,height:6,width:pct+"%",transition:"width .5s"}}/></div>
                           </div>
                         );
@@ -1184,51 +1215,35 @@ export default function FuelLog() {
           <div>
             <FilterBar/>
             {filtFuel.length===0 ? (
-              <div style={{textAlign:"center",padding:"60px 20px",color:T.ft}}><div style={{fontSize:48,marginBottom:12}}>📋</div><div>Δεν υπάρχουν καταχωρήσεις.</div></div>
-            ) : [...filtFuel].reverse().map(f=>{
-              const ft=FTYPES.find(x=>x.id===f.fuelType);
-              const so=STATIONS.find(s=>s.id===f.stId);
-              const fc=FT_COLORS[f.fuelType]||{color:col};
-              return(
-                <div key={f.id} onClick={()=>setEditEntry({...f})} style={{background:T.bg,borderRadius:14,padding:"13px 13px 13px 17px",marginBottom:10,border:"1px solid "+T.br,position:"relative",cursor:"pointer",transition:"border-color .15s"}}>
-                  <div style={{position:"absolute",left:0,top:0,bottom:0,width:4,borderRadius:"14px 0 0 14px",background:fc.color||col}}/>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                    <div style={{flex:1}}>
-                      <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:6}}>
-                        <span style={{fontWeight:700,fontSize:13,color:T.tx}}>{f.date}</span>
-                        {ft&&<FtBadge ftId={f.fuelType} size={11}/>}
-                        {f.dual&&<span style={{fontSize:11,background:"#a78bfa22",color:"#a78bfa",padding:"2px 7px",borderRadius:6,fontWeight:700}}>Dual LPG</span>}
-                        {f.station&&<span style={{fontSize:11,background:so?so.bg:"#555",color:so?so.fg:"#fff",padding:"2px 8px",borderRadius:6,fontWeight:700}}>{f.station}</span>}
+              <div style={{textAlign:"center",padding:"40px 20px",color:T.ft}}><div style={{fontSize:48,marginBottom:12}}>📋</div><div>Δεν υπάρχουν καταχωρήσεις.</div></div>
+            ) : (
+              [...filtFuel].reverse().map(f=>{
+                const ft=FTYPES.find(x=>x.id===f.fuelType);
+                const so=STATIONS.find(s=>s.id===f.stId);
+                const fc=FT_COLORS[f.fuelType]||{color:col};
+                return(
+                  <div key={f.id} onClick={()=>setEditEntry({...f})} style={{background:T.bg,borderRadius:10,padding:"8px 10px 8px 14px",marginBottom:6,border:"1px solid "+T.br,position:"relative",cursor:"pointer"}}>
+                    <div style={{position:"absolute",left:0,top:0,bottom:0,width:3,borderRadius:"10px 0 0 10px",background:fc.color||col}}/>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                      <div style={{flex:1}}>
+                        <div style={{display:"flex",gap:4,alignItems:"center",flexWrap:"wrap",marginBottom:4}}><span style={{fontWeight:700,fontSize:11,color:T.tx}}>{f.date}</span>{ft&&<FtBadge ftId={f.fuelType} size={9}/>}{f.dual&&<span style={{fontSize:9,background:"#a78bfa22",color:"#a78bfa",padding:"1px 5px",borderRadius:4}}>Dual</span>}{f.station&&<span style={{fontSize:9,background:so?so.bg:"#555",color:so?so.fg:"#fff",padding:"1px 6px",borderRadius:4}}>{f.station}</span>}</div>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:"3px 8px"}}>{f.liters&&<span style={{fontSize:11,color:T.tx}}>⛽ {fmt(f.liters,1)}L</span>}{f.ppl&&<span style={{fontSize:11,color:T.tx}}>💧 {fmt(f.ppl,3)}€</span>}{f.total&&<span style={{fontSize:11,color:T.tx}}>💰 {fmt(f.total)}€</span>}{f.km&&<span style={{fontSize:11,color:T.tx}}>📍 {fmt(f.km,0)}{dl}</span>}{f.km&&f.liters&&<span style={{fontSize:11,color:"#10b981",fontWeight:700}}>🔥 {fmt(f.liters/f.km*100,1)}L</span>}</div>
+                        {f.dual&&(f.lpgL||f.lpgT)&&(<div style={{display:"flex",flexWrap:"wrap",gap:"3px 8px",marginTop:2}}>{f.lpgL&&<span style={{fontSize:10,color:"#a78bfa"}}>🟣 {fmt(f.lpgL,1)}L</span>}{f.lpgP&&<span style={{fontSize:10,color:"#a78bfa"}}>💧 {fmt(f.lpgP,3)}€</span>}{f.lpgT&&<span style={{fontSize:10,color:"#a78bfa"}}>💰 {fmt(f.lpgT)}€</span>}</div>)}
+                        {f.notes&&<div style={{marginTop:3,fontSize:9,color:T.mt}}>📝 {f.notes}</div>}
                       </div>
-                      <div style={{display:"flex",flexWrap:"wrap",gap:"4px 12px"}}>
-                        {f.liters&&<span style={{fontSize:12,color:T.tx}}>⛽ {fmt(f.liters,1)}L</span>}
-                        {f.ppl   &&<span style={{fontSize:12,color:T.tx}}>💧 {fmt(f.ppl,3)}€/L</span>}
-                        {f.total &&<span style={{fontSize:12,color:T.tx}}>💰 {fmt(f.total)}€</span>}
-                        {f.km    &&<span style={{fontSize:12,color:T.tx}}>📍 {fmt(f.km,0)}{dl}</span>}
-                        {f.km&&f.liters&&<span style={{fontSize:12,color:"#10b981",fontWeight:700}}>🔥 {fmt(f.liters/f.km*100,1)}L/100</span>}
-                      </div>
-                      {f.dual&&(f.lpgL||f.lpgT)&&(
-                        <div style={{display:"flex",flexWrap:"wrap",gap:"4px 12px",marginTop:4}}>
-                          {f.lpgL&&<span style={{fontSize:12,color:"#a78bfa"}}>🟣 {fmt(f.lpgL,1)}L</span>}
-                          {f.lpgP&&<span style={{fontSize:12,color:"#a78bfa"}}>💧 {fmt(f.lpgP,3)}€/L</span>}
-                          {f.lpgT&&<span style={{fontSize:12,color:"#a78bfa"}}>💰 {fmt(f.lpgT)}€</span>}
-                          {f.km&&f.lpgL&&<span style={{fontSize:12,color:"#a78bfa",fontWeight:700}}>🔥 {fmt(f.lpgL/f.km*100,1)}L/100</span>}
-                        </div>
-                      )}
-                      {f.notes&&<div style={{marginTop:5,fontSize:11,color:T.mt}}>📝 {f.notes}</div>}
+                      <button onClick={e=>{e.stopPropagation();delFuel(f.id);}} style={{background:"none",border:"none",color:T.ft,fontSize:16,paddingLeft:8,cursor:"pointer",lineHeight:1}}>✕</button>
                     </div>
-                    <button onClick={e=>{e.stopPropagation();delFuel(f.id);}} style={{background:"none",border:"none",color:T.ft,fontSize:18,paddingLeft:10,cursor:"pointer",lineHeight:1}}>✕</button>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         )}
 
-        <div style={{textAlign:"center",paddingTop:28}}>
-          <div style={{display:"inline-block",padding:"6px 18px",borderRadius:20,background:T.bg,border:"1px solid "+T.br}}>
-            <span style={{fontSize:13,fontWeight:800,background:"linear-gradient(90deg,#3b82f6,#8b5cf6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>FuelLog v2.1</span>
-            <span style={{fontSize:13,fontWeight:800,color:"#3b82f6"}}> · © Ταχμαζίδης Κ. Γιώργος</span>
+        <div style={{textAlign:"center",paddingTop:16}}>
+          <div style={{display:"inline-block",padding:"4px 16px",borderRadius:20,background:T.bg,border:"1px solid "+T.br}}>
+            <span style={{fontSize:11,fontWeight:800,background:"linear-gradient(90deg,#3b82f6,#8b5cf6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>FuelLog v2.2</span>
+            <span style={{fontSize:11,fontWeight:800,color:"#3b82f6"}}> · © Ταχμαζίδης Κ. Γιώργος</span>
           </div>
         </div>
       </div>
@@ -1257,9 +1272,7 @@ export default function FuelLog() {
         <Modal title="🚗 Νέο Όχημα" onClose={()=>setModal(null)} T={T}>
           <div style={{marginBottom:12}}>
             <label style={lS}>ΚΑΤΗΓΟΡΙΑ</label>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
-              {VCATS.map(c=>(<button key={c.id} onClick={()=>setNewV({...newV,category:c.id,icon:c.icons[0]})} style={{padding:"7px 13px",borderRadius:9,border:"1.5px solid "+(newV.category===c.id?col:T.br),background:newV.category===c.id?col+"22":"transparent",color:newV.category===c.id?col:T.mt,fontSize:12,fontWeight:newV.category===c.id?700:400,cursor:"pointer",fontFamily:"inherit"}}>{c.icons[0]} {c.label}</button>))}
-            </div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>{VCATS.map(c=>(<button key={c.id} onClick={()=>setNewV({...newV,category:c.id,icon:c.icons[0]})} style={{padding:"7px 13px",borderRadius:9,border:"1.5px solid "+(newV.category===c.id?col:T.br),background:newV.category===c.id?col+"22":"transparent",color:newV.category===c.id?col:T.mt,fontSize:12,fontWeight:newV.category===c.id?700:400,cursor:"pointer",fontFamily:"inherit"}}>{c.icons[0]} {c.label}</button>))}</div>
             <label style={lS}>ΕΙΚΟΝΙΔΙΟ</label>
             <div style={{display:"flex",gap:6,marginBottom:14}}>{(VCATS.find(c=>c.id===newV.category)?.icons||["🚗"]).map(ic=>(<button key={ic} onClick={()=>setNewV({...newV,icon:ic})} style={{fontSize:24,padding:"8px 12px",border:"2px solid "+(newV.icon===ic?col:T.br),borderRadius:10,background:"transparent",cursor:"pointer"}}>{ic}</button>))}</div>
             <label style={lS}>ΟΝΟΜΑ</label>
