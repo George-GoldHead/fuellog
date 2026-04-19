@@ -1,4 +1,4 @@
-    import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 
 const FUEL_COLORS = ["#f97316","#3b82f6","#10b981","#e11d48","#8b5cf6","#06b6d4","#eab308","#ec4899"];
 const GRAD_COLS   = ["#f97316","#3b82f6","#10b981","#f97316","#8b5cf6","#06b6d4"];
@@ -73,7 +73,7 @@ const ddiff = ds => Math.round((new Date(ds) - new Date()) / 86400000);
 
 const DK = { bg:"#080810", sf:"#10101c", br:"#1e1e30", tx:"#eeeeff", mt:"#7777aa", ft:"#33334a", inp:"#0d0d1a", ib:"#1e1e30" };
 const LT = { 
-  bg: "#f5efe6", sf: "#fefaf5", br: "#e6dccf", tx: "#2c241a", mt: "#8a7a66", ft: "#c4b8a8", inp: "#ffffff", ib: "#e6dccf"
+  bg: "#f0e8db", sf: "#faf3e8", br: "#d4c0a8", tx: "#1a1510", mt: "#5c4e3d", ft: "#9e8b74", inp: "#ffffff", ib: "#d4c0a8"
 };
 
 const defV = () => ({
@@ -90,12 +90,12 @@ const emptyFuel = (ft="unleaded95", stId="", stLabel="") => ({
 
 const emptyExpense = () => ({ date:today(), catId:"oil", customCat:"", amount:"", notes:"" });
 
-// ========== ROUND CYBERPUNK GAUGE ==========
+// ========== ROUND CYBERPUNK GAUGE (ΜΙΚΡΟΤΕΡΟ) ==========
 function RoundCyberGauge({ value, min, max, color, label, unit, T }) {
   if (value == null) return null;
   
   const pct = Math.min(1, Math.max(0, (value - min) / (max - min || 1)));
-  const R = 55, cx = 70, cy = 70;
+  const R = 42, cx = 52, cy = 52;
   const startA = Math.PI * 0.7;
   const endA = Math.PI * 2.3;
   const totalA = endA - startA;
@@ -111,12 +111,12 @@ function RoundCyberGauge({ value, min, max, color, label, unit, T }) {
   };
   
   const ticks = [];
-  for (let i = 0; i <= 10; i++) {
-    const t = i / 10;
+  for (let i = 0; i <= 8; i++) {
+    const t = i / 8;
     const angle = startA + totalA * t;
     const isMajor = i % 2 === 0;
-    const tickLen = isMajor ? 8 : 4;
-    const r1 = R - 6;
+    const tickLen = isMajor ? 6 : 3;
+    const r1 = R - 5;
     const r2 = r1 - tickLen;
     const x1 = cx + r1 * Math.cos(angle);
     const y1 = cy + r1 * Math.sin(angle);
@@ -126,30 +126,30 @@ function RoundCyberGauge({ value, min, max, color, label, unit, T }) {
       <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={isMajor ? 1.5 : 1} opacity={0.6}/>
     );
     
-    if (isMajor && i % 2 === 0) {
+    if (isMajor && i % 2 === 0 && i <= 8) {
       const val = min + (max - min) * t;
-      const rText = R - 16;
+      const rText = R - 12;
       const xText = cx + rText * Math.cos(angle);
       const yText = cy + rText * Math.sin(angle);
       ticks.push(
-        <text key={`t${i}`} x={xText} y={yText} textAnchor="middle" dominantBaseline="middle" fill={T.mt} fontSize={7} fontFamily="'Orbitron', monospace">
+        <text key={`t${i}`} x={xText} y={yText} textAnchor="middle" dominantBaseline="middle" fill={T.mt} fontSize={6} fontFamily="'Orbitron', monospace">
           {val.toFixed(val > 10 ? 0 : 2)}
         </text>
       );
     }
   }
   
-  const needleX = cx + (R - 14) * Math.cos(valA);
-  const needleY = cy + (R - 14) * Math.sin(valA);
+  const needleX = cx + (R - 11) * Math.cos(valA);
+  const needleY = cy + (R - 11) * Math.sin(valA);
   const formattedValue = value.toFixed(value > 10 ? 1 : 2);
   
   return (
     <div style={{
       background: "#0a0a0f",
       borderRadius: "50%",
-      padding: 8,
+      padding: 5,
       border: `2px solid ${color}`,
-      boxShadow: `0 0 15px ${color}66`,
+      boxShadow: `0 0 10px ${color}66`,
       position: "relative",
       width: "100%",
       aspectRatio: "1 / 1",
@@ -157,90 +157,42 @@ function RoundCyberGauge({ value, min, max, color, label, unit, T }) {
       alignItems: "center",
       justifyContent: "center"
     }}>
-      <div style={{
-        position: "absolute",
-        inset: 0,
-        borderRadius: "50%",
-        backgroundImage: "radial-gradient(rgba(0,255,0,0.03) 1px, transparent 1px)",
-        backgroundSize: "10px 10px",
-        pointerEvents: "none"
-      }}/>
-      
-      <svg viewBox="0 0 140 140" style={{width: "100%", height: "100%", display: "block"}}>
-        <path d={arcPath(R, startA, endA)} fill="none" stroke={T.br} strokeWidth={8} strokeLinecap="round"/>
-        <path d={arcPath(R, startA, valA)} fill="none" stroke={color} strokeWidth={8} strokeLinecap="round"/>
+      <svg viewBox="0 0 104 104" style={{width: "100%", height: "100%", display: "block"}}>
+        <path d={arcPath(R, startA, endA)} fill="none" stroke={T.br} strokeWidth={6} strokeLinecap="round"/>
+        <path d={arcPath(R, startA, valA)} fill="none" stroke={color} strokeWidth={6} strokeLinecap="round"/>
         {ticks}
-        <line x1={cx} y1={cy} x2={needleX} y2={needleY} stroke={color} strokeWidth={2} strokeLinecap="round"/>
-        <circle cx={cx} cy={cy} r={5} fill={color} opacity={0.8}/>
-        <circle cx={cx} cy={cy} r={2.5} fill="#000"/>
+        <line x1={cx} y1={cy} x2={needleX} y2={needleY} stroke={color} strokeWidth={1.5} strokeLinecap="round"/>
+        <circle cx={cx} cy={cy} r={4} fill={color} opacity={0.8}/>
+        <circle cx={cx} cy={cy} r={2} fill="#000"/>
         
-        <rect x={cx - 28} y={cy - 12} width={56} height={22} rx={4} fill="#000" stroke={color} strokeWidth={1} opacity={0.9}/>
-        <text x={cx} y={cy + 2} textAnchor="middle" fill={color} fontSize={12} fontWeight="800" fontFamily="'Orbitron', monospace">
+        <rect x={cx - 22} y={cy - 10} width={44} height={18} rx={3} fill="#000" stroke={color} strokeWidth={1} opacity={0.9}/>
+        <text x={cx} y={cy + 2} textAnchor="middle" fill={color} fontSize={9} fontWeight="800" fontFamily="'Orbitron', monospace">
           {formattedValue}
         </text>
-        <text x={cx} y={cy + 12} textAnchor="middle" fill={T.mt} fontSize={5} fontFamily="'Orbitron', monospace">
+        <text x={cx} y={cy + 10} textAnchor="middle" fill={T.mt} fontSize={4.5} fontFamily="'Orbitron', monospace">
           {unit}
         </text>
       </svg>
       
       <div style={{
         position: "absolute",
-        bottom: 6,
+        bottom: 3,
         left: 0,
         right: 0,
         textAlign: "center",
-        fontSize: 7,
+        fontSize: 5.5,
         color: color,
-        letterSpacing: 1.5,
+        letterSpacing: 1,
         fontFamily: "'Orbitron', monospace",
         fontWeight: 700
       }}>
         {label}
       </div>
-      
-      <div style={{ position: "absolute", top: 4, left: 4, width: 10, height: 10, borderTop: `1.5px solid ${color}`, borderLeft: `1.5px solid ${color}` }}/>
-      <div style={{ position: "absolute", top: 4, right: 4, width: 10, height: 10, borderTop: `1.5px solid ${color}`, borderRight: `1.5px solid ${color}` }}/>
-      <div style={{ position: "absolute", bottom: 4, left: 4, width: 10, height: 10, borderBottom: `1.5px solid ${color}`, borderLeft: `1.5px solid ${color}` }}/>
-      <div style={{ position: "absolute", bottom: 4, right: 4, width: 10, height: 10, borderBottom: `1.5px solid ${color}`, borderRight: `1.5px solid ${color}` }}/>
     </div>
   );
 }
 
 // ========== ΥΠΟΛΟΙΠΑ COMPONENTS ==========
-function Gauge({ value, min, max, color, label, unit, T }) {
-  if (value == null) return null;
-  const pct    = Math.min(1, Math.max(0, (value - min) / (max - min || 1)));
-  const R = 70, cx = 100, cy = 90;
-  const startA = Math.PI * 0.85, endA = Math.PI * 2.15;
-  const totalA = endA - startA;
-  const valA   = startA + totalA * pct;
-  const arcPath = (r, a1, a2) => {
-    const x1 = cx + r*Math.cos(a1), y1 = cy + r*Math.sin(a1);
-    const x2 = cx + r*Math.cos(a2), y2 = cy + r*Math.sin(a2);
-    return "M " + x1 + " " + y1 + " A " + r + " " + r + " 0 " + ((a2-a1)>Math.PI?1:0) + " 1 " + x2 + " " + y2;
-  };
-  const needleX = cx + (R-10)*Math.cos(valA), needleY = cy + (R-10)*Math.sin(valA);
-  const gid = "gauge_" + color.replace("#","");
-  return (
-    <div style={{textAlign:"center"}}>
-      <svg viewBox="0 0 200 110" style={{width:"100%",maxWidth:200,height:"auto",display:"block",margin:"0 auto"}}>
-        <defs>
-          <linearGradient id={gid} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#10b981"/><stop offset="50%" stopColor="#f97316"/><stop offset="100%" stopColor="#ef4444"/>
-          </linearGradient>
-        </defs>
-        <path d={arcPath(R,startA,endA)} fill="none" stroke={T.br} strokeWidth={10} strokeLinecap="round"/>
-        <path d={arcPath(R,startA,valA)} fill="none" stroke={"url(#"+gid+")"} strokeWidth={10} strokeLinecap="round"/>
-        <line x1={cx} y1={cy} x2={needleX} y2={needleY} stroke={color} strokeWidth={2.5} strokeLinecap="round"/>
-        <circle cx={cx} cy={cy} r={5} fill={color}/>
-        <text x={cx} y={cy-14} textAnchor="middle" fill={color} fontSize={16} fontWeight="700">{(+value).toFixed(value>10?1:3)}</text>
-        <text x={cx} y={cy-2} textAnchor="middle" fill={T.mt} fontSize={9}>{unit}</text>
-      </svg>
-      <div style={{fontSize:10,color:T.mt,letterSpacing:1,marginTop:-4}}>{label}</div>
-    </div>
-  );
-}
-
 function SVGChart({ points, color, type, unit }) {
   const [active, setActive] = useState(null);
   if (!points || points.length < 2) return null;
@@ -512,7 +464,7 @@ export default function FuelLog() {
   const [filterStation, setFilterStation] = useState("all");
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
   const [showFilters, setShowFilters] = useState(false);
-  const [expenseGroupBy, setExpenseGroupBy] = useState("month"); // month, category, none
+  const [expenseGroupBy, setExpenseGroupBy] = useState("month");
   const fref = useRef();
 
   useEffect(() => {
@@ -814,7 +766,7 @@ export default function FuelLog() {
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#f97316,#3b82f6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>⛽</div>
-            <div><div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.5px",color:T.tx}}>FuelLog v2.2</div></div>
+            <div><div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.5px",color:T.tx}}>FuelLog v2.3</div></div>
           </div>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
             {dueR.length>0 && (
@@ -1164,7 +1116,7 @@ export default function FuelLog() {
                   </div>
                 </div>
                 
-                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16}}>
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12}}>
                   <RoundCyberGauge value={stats.aC} min={4} max={20} color="#10b981" label="CONSUMPTION" unit="L/100km" T={T}/>
                   <RoundCyberGauge value={stats.aP} min={1.4} max={2.4} color="#f97316" label="PRICE" unit="€/L" T={T}/>
                 </div>
@@ -1217,21 +1169,53 @@ export default function FuelLog() {
             {filtFuel.length===0 ? (
               <div style={{textAlign:"center",padding:"40px 20px",color:T.ft}}><div style={{fontSize:48,marginBottom:12}}>📋</div><div>Δεν υπάρχουν καταχωρήσεις.</div></div>
             ) : (
-              [...filtFuel].reverse().map(f=>{
-                const ft=FTYPES.find(x=>x.id===f.fuelType);
-                const so=STATIONS.find(s=>s.id===f.stId);
-                const fc=FT_COLORS[f.fuelType]||{color:col};
-                return(
-                  <div key={f.id} onClick={()=>setEditEntry({...f})} style={{background:T.bg,borderRadius:10,padding:"8px 10px 8px 14px",marginBottom:6,border:"1px solid "+T.br,position:"relative",cursor:"pointer"}}>
-                    <div style={{position:"absolute",left:0,top:0,bottom:0,width:3,borderRadius:"10px 0 0 10px",background:fc.color||col}}/>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                      <div style={{flex:1}}>
-                        <div style={{display:"flex",gap:4,alignItems:"center",flexWrap:"wrap",marginBottom:4}}><span style={{fontWeight:700,fontSize:11,color:T.tx}}>{f.date}</span>{ft&&<FtBadge ftId={f.fuelType} size={9}/>}{f.dual&&<span style={{fontSize:9,background:"#a78bfa22",color:"#a78bfa",padding:"1px 5px",borderRadius:4}}>Dual</span>}{f.station&&<span style={{fontSize:9,background:so?so.bg:"#555",color:so?so.fg:"#fff",padding:"1px 6px",borderRadius:4}}>{f.station}</span>}</div>
-                        <div style={{display:"flex",flexWrap:"wrap",gap:"3px 8px"}}>{f.liters&&<span style={{fontSize:11,color:T.tx}}>⛽ {fmt(f.liters,1)}L</span>}{f.ppl&&<span style={{fontSize:11,color:T.tx}}>💧 {fmt(f.ppl,3)}€</span>}{f.total&&<span style={{fontSize:11,color:T.tx}}>💰 {fmt(f.total)}€</span>}{f.km&&<span style={{fontSize:11,color:T.tx}}>📍 {fmt(f.km,0)}{dl}</span>}{f.km&&f.liters&&<span style={{fontSize:11,color:"#10b981",fontWeight:700}}>🔥 {fmt(f.liters/f.km*100,1)}L</span>}</div>
-                        {f.dual&&(f.lpgL||f.lpgT)&&(<div style={{display:"flex",flexWrap:"wrap",gap:"3px 8px",marginTop:2}}>{f.lpgL&&<span style={{fontSize:10,color:"#a78bfa"}}>🟣 {fmt(f.lpgL,1)}L</span>}{f.lpgP&&<span style={{fontSize:10,color:"#a78bfa"}}>💧 {fmt(f.lpgP,3)}€</span>}{f.lpgT&&<span style={{fontSize:10,color:"#a78bfa"}}>💰 {fmt(f.lpgT)}€</span>}</div>)}
-                        {f.notes&&<div style={{marginTop:3,fontSize:9,color:T.mt}}>📝 {f.notes}</div>}
+              [...filtFuel].reverse().map(f => {
+                const ft = FTYPES.find(x => x.id === f.fuelType);
+                const so = STATIONS.find(s => s.id === f.stId);
+                const fc = FT_COLORS[f.fuelType] || {color: col};
+                return (
+                  <div 
+                    key={f.id} 
+                    onClick={() => setEditEntry({...f})} 
+                    style={{
+                      background: T.bg,
+                      borderRadius: 6,
+                      padding: "4px 6px 4px 10px",
+                      marginBottom: 3,
+                      border: "1px solid " + T.br,
+                      position: "relative",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <div style={{
+                      position: "absolute",
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 2.5,
+                      borderRadius: "6px 0 0 6px",
+                      background: fc.color || col
+                    }}/>
+                    <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+                      <div style={{flex: 1}}>
+                        <div style={{display: "flex", gap: 3, alignItems: "center", flexWrap: "wrap", marginBottom: 1}}>
+                          <span style={{fontWeight: 600, fontSize: 9, color: T.tx}}>{f.date.slice(5)}/{f.date.slice(2,4)}</span>
+                          {ft && <FtBadge ftId={f.fuelType} size={7}/>}
+                          {f.station && <span style={{fontSize: 7, background: so ? so.bg : "#555", color: so ? so.fg : "#fff", padding: "1px 4px", borderRadius: 3}}>{f.station.slice(0,10)}</span>}
+                        </div>
+                        <div style={{display: "flex", flexWrap: "wrap", gap: "2px 5px", alignItems: "center"}}>
+                          {f.liters && <span style={{fontSize: 9, color: T.tx}}>⛽{fmt(f.liters, 0)}</span>}
+                          {f.ppl && <span style={{fontSize: 9, color: T.tx}}>💧{fmt(f.ppl, 3)}</span>}
+                          {f.total && <span style={{fontSize: 9, fontWeight: 600, color: "#ef4444"}}>€{fmt(f.total)}</span>}
+                          {f.km && f.liters && <span style={{fontSize: 8, color: "#10b981"}}>🔥{fmt(f.liters/f.km*100, 1)}</span>}
+                        </div>
                       </div>
-                      <button onClick={e=>{e.stopPropagation();delFuel(f.id);}} style={{background:"none",border:"none",color:T.ft,fontSize:16,paddingLeft:8,cursor:"pointer",lineHeight:1}}>✕</button>
+                      <button 
+                        onClick={e => { e.stopPropagation(); delFuel(f.id); }} 
+                        style={{background: "none", border: "none", color: T.ft, fontSize: 12, paddingLeft: 4, cursor: "pointer"}}
+                      >
+                        ✕
+                      </button>
                     </div>
                   </div>
                 );
@@ -1242,7 +1226,7 @@ export default function FuelLog() {
 
         <div style={{textAlign:"center",paddingTop:16}}>
           <div style={{display:"inline-block",padding:"4px 16px",borderRadius:20,background:T.bg,border:"1px solid "+T.br}}>
-            <span style={{fontSize:11,fontWeight:800,background:"linear-gradient(90deg,#3b82f6,#8b5cf6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>FuelLog v2.2</span>
+            <span style={{fontSize:11,fontWeight:800,background:"linear-gradient(90deg,#3b82f6,#8b5cf6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>FuelLog v2.3</span>
             <span style={{fontSize:11,fontWeight:800,color:"#3b82f6"}}> · © Ταχμαζίδης Κ. Γιώργος</span>
           </div>
         </div>
