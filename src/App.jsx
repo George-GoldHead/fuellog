@@ -71,19 +71,9 @@ const fmt   = (n, d=2) => n != null ? (+n).toFixed(d) : "—";
 const today = () => new Date().toISOString().split("T")[0];
 const ddiff = ds => Math.round((new Date(ds) - new Date()) / 86400000);
 
-// DARK THEME
 const DK = { bg:"#080810", sf:"#10101c", br:"#1e1e30", tx:"#eeeeff", mt:"#7777aa", ft:"#33334a", inp:"#0d0d1a", ib:"#1e1e30" };
-
-// CREAM WARM LIGHT THEME (νέο, απαλό για τα μάτια)
 const LT = { 
-  bg: "#f5efe6",      // cream background
-  sf: "#fefaf5",      // warm white cards
-  br: "#e6dccf",      // soft beige border
-  tx: "#2c241a",      // dark warm text
-  mt: "#8a7a66",      // muted warm gray
-  ft: "#c4b8a8",      // faint warm
-  inp: "#ffffff",     // pure white inputs
-  ib: "#e6dccf"       // input border
+  bg: "#f5efe6", sf: "#fefaf5", br: "#e6dccf", tx: "#2c241a", mt: "#8a7a66", ft: "#c4b8a8", inp: "#ffffff", ib: "#e6dccf"
 };
 
 const defV = () => ({
@@ -100,6 +90,123 @@ const emptyFuel = (ft="unleaded95", stId="", stLabel="") => ({
 
 const emptyExpense = () => ({ date:today(), catId:"oil", customCat:"", amount:"", notes:"" });
 
+// ========== ROUND CYBERPUNK GAUGE ==========
+function RoundCyberGauge({ value, min, max, color, label, unit, T }) {
+  if (value == null) return null;
+  
+  const pct = Math.min(1, Math.max(0, (value - min) / (max - min || 1)));
+  const R = 80, cx = 100, cy = 100;
+  const startA = Math.PI * 0.7;
+  const endA = Math.PI * 2.3;
+  const totalA = endA - startA;
+  const valA = startA + totalA * pct;
+  
+  const arcPath = (r, a1, a2) => {
+    const x1 = cx + r * Math.cos(a1);
+    const y1 = cy + r * Math.sin(a1);
+    const x2 = cx + r * Math.cos(a2);
+    const y2 = cy + r * Math.sin(a2);
+    const large = (a2 - a1) > Math.PI ? 1 : 0;
+    return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
+  };
+  
+  const ticks = [];
+  for (let i = 0; i <= 10; i++) {
+    const t = i / 10;
+    const angle = startA + totalA * t;
+    const isMajor = i % 2 === 0;
+    const tickLen = isMajor ? 12 : 6;
+    const r1 = R - 8;
+    const r2 = r1 - tickLen;
+    const x1 = cx + r1 * Math.cos(angle);
+    const y1 = cy + r1 * Math.sin(angle);
+    const x2 = cx + r2 * Math.cos(angle);
+    const y2 = cy + r2 * Math.sin(angle);
+    ticks.push(
+      <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={isMajor ? 2 : 1} opacity={0.6}/>
+    );
+    
+    if (isMajor) {
+      const val = min + (max - min) * t;
+      const rText = R - 22;
+      const xText = cx + rText * Math.cos(angle);
+      const yText = cy + rText * Math.sin(angle);
+      ticks.push(
+        <text key={`t${i}`} x={xText} y={yText} textAnchor="middle" dominantBaseline="middle" fill={T.mt} fontSize={9} fontFamily="'Orbitron', monospace">
+          {val.toFixed(val > 10 ? 0 : 2)}
+        </text>
+      );
+    }
+  }
+  
+  const needleX = cx + (R - 20) * Math.cos(valA);
+  const needleY = cy + (R - 20) * Math.sin(valA);
+  const formattedValue = value.toFixed(value > 10 ? 1 : 3);
+  
+  return (
+    <div style={{
+      background: "#0a0a0f",
+      borderRadius: "50%",
+      padding: 16,
+      border: `3px solid ${color}`,
+      boxShadow: `0 0 25px ${color}66`,
+      position: "relative",
+      width: "100%",
+      aspectRatio: "1 / 1",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }}>
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        borderRadius: "50%",
+        backgroundImage: "radial-gradient(rgba(0,255,0,0.03) 1px, transparent 1px)",
+        backgroundSize: "12px 12px",
+        pointerEvents: "none"
+      }}/>
+      
+      <svg viewBox="0 0 200 200" style={{width: "100%", height: "100%", display: "block"}}>
+        <path d={arcPath(R, startA, endA)} fill="none" stroke={T.br} strokeWidth={12} strokeLinecap="round"/>
+        <path d={arcPath(R, startA, valA)} fill="none" stroke={color} strokeWidth={12} strokeLinecap="round"/>
+        {ticks}
+        <line x1={cx} y1={cy} x2={needleX} y2={needleY} stroke={color} strokeWidth={2.5} strokeLinecap="round"/>
+        <circle cx={cx} cy={cy} r={6} fill={color} opacity={0.8}/>
+        <circle cx={cx} cy={cy} r={3} fill="#000"/>
+        
+        <rect x={cx - 35} y={cy - 15} width={70} height={28} rx={6} fill="#000" stroke={color} strokeWidth={1.5} opacity={0.9}/>
+        <text x={cx} y={cy + 3} textAnchor="middle" fill={color} fontSize={16} fontWeight="800" fontFamily="'Orbitron', monospace">
+          {formattedValue}
+        </text>
+        <text x={cx} y={cy + 16} textAnchor="middle" fill={T.mt} fontSize={7} fontFamily="'Orbitron', monospace">
+          {unit}
+        </text>
+      </svg>
+      
+      <div style={{
+        position: "absolute",
+        bottom: 12,
+        left: 0,
+        right: 0,
+        textAlign: "center",
+        fontSize: 9,
+        color: color,
+        letterSpacing: 2,
+        fontFamily: "'Orbitron', monospace",
+        fontWeight: 700
+      }}>
+        {label}
+      </div>
+      
+      <div style={{ position: "absolute", top: 6, left: 6, width: 14, height: 14, borderTop: `2px solid ${color}`, borderLeft: `2px solid ${color}` }}/>
+      <div style={{ position: "absolute", top: 6, right: 6, width: 14, height: 14, borderTop: `2px solid ${color}`, borderRight: `2px solid ${color}` }}/>
+      <div style={{ position: "absolute", bottom: 6, left: 6, width: 14, height: 14, borderBottom: `2px solid ${color}`, borderLeft: `2px solid ${color}` }}/>
+      <div style={{ position: "absolute", bottom: 6, right: 6, width: 14, height: 14, borderBottom: `2px solid ${color}`, borderRight: `2px solid ${color}` }}/>
+    </div>
+  );
+}
+
+// ========== ΥΠΟΛΟΙΠΑ COMPONENTS ==========
 function Gauge({ value, min, max, color, label, unit, T }) {
   if (value == null) return null;
   const pct    = Math.min(1, Math.max(0, (value - min) / (max - min || 1)));
@@ -706,7 +813,7 @@ export default function FuelLog() {
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#f97316,#3b82f6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>⛽</div>
-            <div><div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.5px",color:T.tx}}>FuelLog</div></div>
+            <div><div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.5px",color:T.tx}}>FuelLog v2.1</div></div>
           </div>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
             {dueR.length>0 && (
@@ -1018,6 +1125,13 @@ export default function FuelLog() {
                     <div style={{position:"absolute",top:10,right:10,fontSize:13,fontWeight:800,color:"#ef4444",background:"#ef444422",borderRadius:6,padding:"2px 6px"}}>↑</div>
                   </div>
                 </div>
+                
+                {/* ROUND CYBERPUNK GAUGES */}
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20}}>
+                  <RoundCyberGauge value={stats.aC} min={4} max={20} color="#10b981" label="CONSUMPTION" unit="L/100km" T={T}/>
+                  <RoundCyberGauge value={stats.aP} min={1.4} max={2.4} color="#f97316" label="PRICE" unit="€/L" T={T}/>
+                </div>
+
                 {stats.aLC&&(
                   <div style={{background:T.bg,borderRadius:14,padding:14,marginBottom:12,border:"2px solid #a78bfa44"}}>
                     <div style={{fontSize:11,color:"#a78bfa",letterSpacing:"0.08em",fontWeight:700,marginBottom:6}}>🟣 ΔΙΠΛΗ ΚΑΤΑΝΑΛΩΣΗ</div>
@@ -1027,6 +1141,7 @@ export default function FuelLog() {
                     </div>
                   </div>
                 )}
+
                 {stats.minP&&(
                   <div style={{background:T.bg,borderRadius:14,padding:14,marginBottom:14,border:"1px solid "+T.br,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div><div style={{fontSize:11,color:T.mt,fontWeight:600}}>MIN €/L</div><div style={{fontSize:16,fontWeight:800,color:"#10b981"}}>{fmt(stats.minP,3)}€</div></div>
@@ -1034,19 +1149,12 @@ export default function FuelLog() {
                     <div style={{textAlign:"right"}}><div style={{fontSize:11,color:T.mt,fontWeight:600}}>MAX €/L</div><div style={{fontSize:16,fontWeight:800,color:"#ef4444"}}>{fmt(stats.maxP,3)}€</div></div>
                   </div>
                 )}
+
                 <ChartBlock title="ΤΙΜΗ €/L" data={cd} dk="price" color={col} type="line" unit="€" T={T}/>
                 <ChartBlock title="ΕΞΟΔΑ/ΓΕΜΙΣΜΑ" data={cd} dk="cost" color={col} type="bar" unit="€" T={T}/>
-                {(stats.aC!=null||stats.aP!=null)&&(
-                  <div style={{background:T.bg,borderRadius:14,padding:"14px 8px 8px",border:"1px solid "+T.br,marginBottom:14}}>
-                    <div style={{fontSize:11,color:T.mt,letterSpacing:"0.08em",fontWeight:700,marginBottom:8,paddingLeft:6}}>ΚΟΝΤΕΡ</div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                      {stats.aC!=null&&<Gauge value={stats.aC} min={4} max={20} color="#10b981" label="ΚΑΤΑΝΑΛΩΣΗ" unit="L/100km" T={T}/>}
-                      {stats.aP!=null&&<Gauge value={stats.aP} min={1.4} max={2.4} color={col} label="ΜΕΣΗ ΤΙΜΗ/L" unit="€/L" T={T}/>}
-                    </div>
-                  </div>
-                )}
                 <ChartBlock title="ΚΑΤΑΝΑΛΩΣΗ" data={cd} dk="cons" color="#10b981" type="line" unit="L/100" T={T}/>
                 <ChartBlock title="LPG L/100" data={cd} dk="lpgC" color="#a78bfa" type="line" unit="L/100" T={T}/>
+
                 {stats.expSpent>0&&filtExp.length>0&&(
                   <div onClick={()=>setTab("expenses")} style={{cursor:"pointer",marginTop:6}}>
                     <div style={{fontSize:11,color:T.mt,letterSpacing:"0.08em",fontWeight:700,marginBottom:8}}>ΑΝΑΛΥΣΗ ΕΞΟΔΩΝ (πάτα για λεπτομέρειες)</div>
@@ -1119,7 +1227,7 @@ export default function FuelLog() {
 
         <div style={{textAlign:"center",paddingTop:28}}>
           <div style={{display:"inline-block",padding:"6px 18px",borderRadius:20,background:T.bg,border:"1px solid "+T.br}}>
-            <span style={{fontSize:13,fontWeight:800,background:"linear-gradient(90deg,#3b82f6,#8b5cf6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>FuelLog v2.0</span>
+            <span style={{fontSize:13,fontWeight:800,background:"linear-gradient(90deg,#3b82f6,#8b5cf6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>FuelLog v2.1</span>
             <span style={{fontSize:13,fontWeight:800,color:"#3b82f6"}}> · © Ταχμαζίδης Κ. Γιώργος</span>
           </div>
         </div>
