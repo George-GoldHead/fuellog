@@ -10,7 +10,6 @@ const VCATS = [
   { id:"van",    label:"Βαν",              icon:"🚐" },
   { id:"ltruck", label:"Ελαφρύ Φορτηγό",  icon:"🚚" },
   { id:"truck",  label:"Βαρύ Φορτηγό",    icon:"🚛" },
-  { id:"bus",    label:"Λεωφορείο",        icon:"🚌" },
 ];
 
 const FTYPES = [
