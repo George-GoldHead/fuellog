@@ -48,6 +48,21 @@ const formatDate = (ds) => {
   return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getFullYear()).slice(-2)}`;
 };
 
+// ── Reminder helpers ──
+const daysUntil = ds => {
+  if(!ds) return null;
+  const diff = new Date(ds) - new Date(today());
+  return Math.ceil(diff / 86400000);
+};
+const REMINDER_FIELDS = [
+  { f:"insuranceExp",   label:"Λήξη Ασφάλειας",         icon:"🛡️" },
+  { f:"kteo",           label:"ΚΤΕΟ",                    icon:"🔍" },
+  { f:"kek",            label:"ΚΕΚ",                     icon:"🔬" },
+  { f:"tiresNext",      label:"Αλλαγή Ελαστικών",        icon:"⚫" },
+  { f:"serviceNextDate",label:"Επόμενο Service",          icon:"🔧" },
+];
+const WARN_DAYS = 30; // υπενθύμιση 1 μήνα νωρίτερα
+
 // ========== THEME ==========
 const DK = { bg:"#080810", sf:"#10101c", br:"#1e1e30", tx:"#eeeeff", mt:"#7777aa", ft:"#33334a", inp:"#0d0d1a", ib:"#1e1e30" };
 const LT = { bg:"#f0e8db", sf:"#faf3e8", br:"#d4c0a8", tx:"#1a1510", mt:"#5c4e3d", ft:"#e0d0bc", inp:"#ffffff", ib:"#c4b098" };
@@ -215,6 +230,27 @@ export default function FuelLog() {
     return {fuelSpent,expSpent,totalSpent:fuelSpent+expSpent,tL,aC,aP};
   },[filtFuel,filtExp]);
 
+  // ── Reminders: υπενθυμίσεις για ΟΛΑ τα οχήματα ──
+  const reminders = useMemo(()=>{
+    const list=[];
+    vehicles.forEach(v=>{
+      REMINDER_FIELDS.forEach(({f,label,icon})=>{
+        const ds=(v.info||{})[f];
+        const days=daysUntil(ds);
+        if(days===null) return;
+        if(days<=WARN_DAYS){
+          list.push({
+            vid:v.id, vName:v.name, vIcon:v.icon, vColor:v.color,
+            label, icon, days, date:ds,
+            urgent: days<=7,
+            expired: days<0,
+          });
+        }
+      });
+    });
+    return list.sort((a,b)=>a.days-b.days);
+  },[vehicles]);
+
   const monthlyBarData = useMemo(()=>{
     const yF = fY==="all"?allFuel:allFuel.filter(e=>e.date.startsWith(fY));
     const yE = fY==="all"?allExp :allExp.filter(e=>e.date.startsWith(fY));
@@ -362,8 +398,19 @@ export default function FuelLog() {
             border:"none",background:"none",cursor:"pointer",padding:"3px 6px",
             display:"flex",flexDirection:"column",alignItems:"center",gap:1,
             color:tab===t.id?col:T.mt,fontSize:9,fontWeight:tab===t.id?"bold":"normal",
+            position:"relative",
           }}>
-            <span style={{fontSize:19}}>{t.icon}</span>{t.label}
+            <span style={{fontSize:19}}>{t.icon}</span>
+            {t.label}
+            {/* Badge for reminders on home tab */}
+            {t.id==="home"&&reminders.length>0&&(
+              <span style={{
+                position:"absolute",top:0,right:2,
+                background:reminders.some(r=>r.expired||r.urgent)?"#e11d48":"#eab308",
+                color:"#fff",fontSize:8,fontWeight:"bold",
+                padding:"1px 4px",borderRadius:8,minWidth:14,textAlign:"center",
+              }}>{reminders.length}</span>
+            )}
           </button>
         ))}
       </div>
@@ -382,7 +429,48 @@ export default function FuelLog() {
               </div>
             </div>
 
-            {/* Clickable shortcut cards */}
+            {/* ✅ NEW: Reminders / Alerts */}
+            {reminders.length>0&&(
+              <div style={{marginBottom:14}}>
+                <div style={{fontSize:12,fontWeight:"bold",color:"#eab308",marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
+                  🔔 Υπενθυμίσεις
+                  <span style={{background:"#e11d48",color:"#fff",fontSize:10,fontWeight:"bold",padding:"1px 7px",borderRadius:10}}>
+                    {reminders.length}
+                  </span>
+                </div>
+                {reminders.map((r,i)=>{
+                  const bgColor = r.expired ? "#2a0a0a" : r.urgent ? "#2a1200" : dark?"#1a1a10":"#fdf3d0";
+                  const borderColor = r.expired ? "#e11d48" : r.urgent ? "#f97316" : "#eab308";
+                  const textColor   = r.expired ? "#ef4444" : r.urgent ? "#f97316" : "#eab308";
+                  const statusText  = r.expired
+                    ? `⚠️ Έληξε πριν ${Math.abs(r.days)} μέρες`
+                    : r.days===0 ? "⚠️ Λήγει ΣΗΜΕΡΑ"
+                    : `⏰ Λήγει σε ${r.days} μέρες`;
+                  return(
+                    <div key={i} onClick={()=>{ setVid(r.vid); setShowVInfo(true); }}
+                      style={{
+                        display:"flex",justifyContent:"space-between",alignItems:"center",
+                        padding:"10px 14px",borderRadius:10,marginBottom:6,cursor:"pointer",
+                        background:bgColor,border:`1px solid ${borderColor}`,
+                      }}>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                        <span style={{fontSize:22}}>{r.icon}</span>
+                        <div>
+                          <div style={{fontSize:13,fontWeight:"bold",color:textColor}}>{r.label}</div>
+                          <div style={{fontSize:11,color:T.mt}}>{r.vIcon} {r.vName} · {formatDate(r.date)}</div>
+                        </div>
+                      </div>
+                      <div style={{textAlign:"right"}}>
+                        <div style={{fontSize:11,fontWeight:"bold",color:textColor}}>{statusText}</div>
+                        <div style={{fontSize:10,color:T.mt}}>→ Στοιχεία</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
               <div onClick={()=>setTab("history")} style={{...cardStyle({cursor:"pointer"})}}>
                 <div style={{fontSize:10,color:T.mt}}>⛽ ΓΕΜΙΣΜΑΤΑ</div>
