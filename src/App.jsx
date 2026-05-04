@@ -509,16 +509,14 @@ export default function FuelLog(){
                 <div key={label} style={CS()}><div style={{fontSize:9,color:T.mt,marginBottom:3}}>{label}</div><div style={{fontSize:18,fontWeight:"bold",color}}>{v}</div></div>
               ))}
             </div>
-            {/* ✅ GAUGES: responsive, max 400px, overlap on mobile */}
-            <div style={{maxWidth:420,margin:"0 auto 16px",position:"relative",height:0,paddingBottom:"48%"}}>
-              <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <div style={{position:"relative",width:"100%",height:"100%"}}>
-                  <div style={{position:"absolute",left:0,top:0,width:"52%",zIndex:2,filter:"drop-shadow(3px 0 10px #10b98150)"}}>
-                    <RoundCyberGauge value={stats.aC} min={0} max={15} color="#10b981" label="ΜΕΣΗ ΚΑΤΑΝΑΛΩΣΗ" unit="L/100km" T={T}/>
-                  </div>
-                  <div style={{position:"absolute",right:0,top:0,width:"52%",zIndex:1,filter:"drop-shadow(-3px 0 10px #f9731650)"}}>
-                    <RoundCyberGauge value={stats.aP} min={1} max={2.5} color="#f97316" label="ΜΕΣΗ ΤΙΜΗ/L" unit="€/L" T={T}/>
-                  </div>
+            {/* ✅ GAUGES: flex overlap, maxWidth για desktop, σωστό flow για content κάτω */}
+            <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
+              <div style={{width:"100%",maxWidth:380,display:"flex",alignItems:"center",overflow:"visible"}}>
+                <div style={{flex:"0 0 55%",zIndex:2,filter:"drop-shadow(3px 0 10px #10b98150)"}}>
+                  <RoundCyberGauge value={stats.aC} min={0} max={15} color="#10b981" label="ΜΕΣΗ ΚΑΤΑΝΑΛΩΣΗ" unit="L/100km" T={T}/>
+                </div>
+                <div style={{flex:"0 0 55%",marginLeft:"-10%",zIndex:1,filter:"drop-shadow(-3px 0 10px #f9731650)"}}>
+                  <RoundCyberGauge value={stats.aP} min={1} max={2.5} color="#f97316" label="ΜΕΣΗ ΤΙΜΗ/L" unit="€/L" T={T}/>
                 </div>
               </div>
             </div>
