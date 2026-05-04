@@ -587,23 +587,46 @@ export default function FuelLog(){
                       </div>
                       {isOpen&&(
                         <div style={{background:T.bg,borderRadius:8,overflow:"hidden",border:`1px solid ${T.br}`}}>
-                          {catEntries.map((e,i)=>(
-                            <div key={e.id} style={{
-                              display:"flex",justifyContent:"space-between",alignItems:"center",
-                              padding:"8px 12px",
-                              background:i%2===0?T.bg:T.sf,
-                              borderBottom:i<catEntries.length-1?`1px solid ${T.ft}`:"none",
-                            }}>
-                              <div>
-                                <div style={{fontSize:12,fontWeight:"bold"}}>{e.label||cat.label}</div>
-                                <div style={{fontSize:10,color:T.mt}}>{formatDate(e.date)}</div>
+                          {/* Ομαδοποίηση ανά μήνα */}
+                          {(()=>{
+                            const byMonth={};
+                            catEntries.forEach(e=>{
+                              const d=new Date(e.date);
+                              const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+                              const lbl=`${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`;
+                              if(!byMonth[k])byMonth[k]={lbl,entries:[],total:0};
+                              byMonth[k].entries.push(e);
+                              byMonth[k].total+=(parseFloat(e.amount)||0);
+                            });
+                            return Object.entries(byMonth).map(([mk,{lbl,entries:me,total:mt}],mi)=>(
+                              <div key={mk}>
+                                {/* Month header */}
+                                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 12px",background:T.br}}>
+                                  <span style={{fontSize:11,fontWeight:"bold",color:T.tx}}>📅 {lbl}</span>
+                                  <span style={{fontSize:11,fontWeight:"bold",color:col}}>-{fmt(mt)}€</span>
+                                </div>
+                                {/* Entries */}
+                                {me.map((e,i)=>(
+                                  <div key={e.id} style={{
+                                    display:"flex",justifyContent:"space-between",alignItems:"center",
+                                    padding:"7px 16px",
+                                    background:i%2===0?T.bg:T.sf,
+                                    borderBottom:i<me.length-1?`1px solid ${T.ft}`:"none",
+                                  }}>
+                                    <div>
+                                      <div style={{fontSize:12,fontWeight:"bold"}}>{e.label||cat.label}</div>
+                                      <div style={{fontSize:10,color:T.mt}}>{formatDate(e.date)}</div>
+                                    </div>
+                                    <span style={{fontSize:13,fontWeight:"bold",color:"#e11d48"}}>-{fmt(e.amount)}€</span>
+                                  </div>
+                                ))}
                               </div>
-                              <span style={{fontSize:13,fontWeight:"bold",color:"#e11d48"}}>-{fmt(e.amount)}€</span>
-                            </div>
-                          ))}
-                          <div style={{padding:"6px 12px",background:T.br,display:"flex",justifyContent:"space-between"}}>
-                            <span style={{fontSize:11,color:T.mt}}>Σύνολο {cat.label}</span>
-                            <span style={{fontSize:12,fontWeight:"bold",color:col}}>{fmt(tot)}€</span>
+                            ));
+                          })()}
+                          {/* Grand total footer */}
+                          <div style={{padding:"8px 12px",background:T.ft,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <span style={{fontSize:11,color:T.mt,fontWeight:"bold"}}>ΣΥΝΟΛΟ {cat.label.toUpperCase()}</span>
+                            <span style={{fontSize:14,fontWeight:"bold",color:col}}>{fmt(tot)}€</span>
                           </div>
                         </div>
                       )}
