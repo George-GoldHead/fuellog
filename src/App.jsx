@@ -194,7 +194,12 @@ export default function FuelLog(){
     const aC=wK.length?wK.reduce((s,x)=>s+(parseFloat(x.liters)/parseFloat(x.km)*100),0)/wK.length:0;
     const wP=filtFuel.filter(x=>parseFloat(x.ppl)>0);
     const aP=wP.length?+(wP.reduce((s,x)=>s+parseFloat(x.ppl),0)/wP.length).toFixed(3):0;
-    return{fuelSpent,expSpent,totalSpent:fuelSpent+expSpent,tL,aC,aP};
+    // ✅ NEW: Κόστος ανά χλμ — από ODO readings
+    const odoEntries=filtFuel.filter(x=>x.odo!=null).sort((a,b)=>a.odo-b.odo);
+    const totalKm=odoEntries.length>=2?(odoEntries[odoEntries.length-1].odo-odoEntries[0].odo):0;
+    const costPerKm=totalKm>0?((fuelSpent+expSpent)/totalKm):0;
+    const fuelCostPerKm=totalKm>0?(fuelSpent/totalKm):0;
+    return{fuelSpent,expSpent,totalSpent:fuelSpent+expSpent,tL,aC,aP,totalKm,costPerKm,fuelCostPerKm};
   },[filtFuel,filtExp]);
 
   // Reminders — ALL vehicles, 30 days ahead
@@ -504,17 +509,40 @@ export default function FuelLog(){
                 <div key={label} style={CS()}><div style={{fontSize:9,color:T.mt,marginBottom:3}}>{label}</div><div style={{fontSize:18,fontWeight:"bold",color}}>{v}</div></div>
               ))}
             </div>
-            {/* ✅ FIX: Overlapping gauges — fit any screen width */}
-            <div style={{display:"flex",justifyContent:"center",alignItems:"center",marginBottom:20,position:"relative",height:200}}>
-              {/* Left gauge */}
-              <div style={{position:"absolute",left:0,width:"52%",zIndex:2,filter:"drop-shadow(4px 0 12px #10b98140)"}}>
-                <RoundCyberGauge value={stats.aC} min={0} max={15} color="#10b981" label="ΜΕΣΗ ΚΑΤΑΝΑΛΩΣΗ" unit="L/100km" T={T}/>
-              </div>
-              {/* Right gauge — overlaps left by ~10% */}
-              <div style={{position:"absolute",right:0,width:"52%",zIndex:1,filter:"drop-shadow(-4px 0 12px #f9731640)"}}>
-                <RoundCyberGauge value={stats.aP} min={1} max={2.5} color="#f97316" label="ΜΕΣΗ ΤΙΜΗ/L" unit="€/L" T={T}/>
+            {/* ✅ GAUGES: responsive, max 400px, overlap on mobile */}
+            <div style={{maxWidth:420,margin:"0 auto 16px",position:"relative",height:0,paddingBottom:"48%"}}>
+              <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <div style={{position:"relative",width:"100%",height:"100%"}}>
+                  <div style={{position:"absolute",left:0,top:0,width:"52%",zIndex:2,filter:"drop-shadow(3px 0 10px #10b98150)"}}>
+                    <RoundCyberGauge value={stats.aC} min={0} max={15} color="#10b981" label="ΜΕΣΗ ΚΑΤΑΝΑΛΩΣΗ" unit="L/100km" T={T}/>
+                  </div>
+                  <div style={{position:"absolute",right:0,top:0,width:"52%",zIndex:1,filter:"drop-shadow(-3px 0 10px #f9731650)"}}>
+                    <RoundCyberGauge value={stats.aP} min={1} max={2.5} color="#f97316" label="ΜΕΣΗ ΤΙΜΗ/L" unit="€/L" T={T}/>
+                  </div>
+                </div>
               </div>
             </div>
+
+            {/* ✅ NEW: Κόστος ανά χλμ */}
+            {stats.totalKm>0&&(
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
+                <div style={{...CS(),textAlign:"center",padding:10}}>
+                  <div style={{fontSize:9,color:T.mt,marginBottom:4}}>ΣΥΝΟΛΟ ΧΛΜ</div>
+                  <div style={{fontSize:15,fontWeight:"bold",color:"#06b6d4"}}>{stats.totalKm.toLocaleString()}</div>
+                  <div style={{fontSize:9,color:T.mt}}>km</div>
+                </div>
+                <div style={{...CS(),textAlign:"center",padding:10,border:`1px solid ${col}44`}}>
+                  <div style={{fontSize:9,color:T.mt,marginBottom:4}}>ΚΟΣΤΟΣ/ΧΛΜ</div>
+                  <div style={{fontSize:15,fontWeight:"bold",color:col}}>{fmt(stats.costPerKm,3)}</div>
+                  <div style={{fontSize:9,color:T.mt}}>€/km (ολικό)</div>
+                </div>
+                <div style={{...CS(),textAlign:"center",padding:10}}>
+                  <div style={{fontSize:9,color:T.mt,marginBottom:4}}>ΚΑΥΣΙΜΟ/ΧΛΜ</div>
+                  <div style={{fontSize:15,fontWeight:"bold",color:"#3b82f6"}}>{fmt(stats.fuelCostPerKm,3)}</div>
+                  <div style={{fontSize:9,color:T.mt}}>€/km (καύσιμο)</div>
+                </div>
+              </div>
+            )}
             <div style={{...CS(),marginBottom:14}}>
               <div style={{fontSize:12,fontWeight:"bold",marginBottom:8,color:T.tx}}>📊 Μηνιαία Έξοδα · {fY!=="all"?fY:"Όλα τα έτη"}</div>
               <BarChart data={monthlyBarData} color={col} T={T}/>
