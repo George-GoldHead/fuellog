@@ -504,29 +504,39 @@ export default function FuelLog(){
                 <div key={label} style={CS()}><div style={{fontSize:9,color:T.mt,marginBottom:3}}>{label}</div><div style={{fontSize:18,fontWeight:"bold",color}}>{v}</div></div>
               ))}
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-              <RoundCyberGauge value={stats.aC} min={0} max={15} color="#10b981" label="ΜΕΣΗ ΚΑΤΑΝΑΛΩΣΗ" unit="L/100km" T={T}/>
-              <RoundCyberGauge value={stats.aP} min={1} max={2.5} color="#f97316" label="ΜΕΣΗ ΤΙΜΗ/L" unit="€/L" T={T}/>
+            {/* ✅ FIX: Overlapping gauges — fit any screen width */}
+            <div style={{display:"flex",justifyContent:"center",alignItems:"center",marginBottom:20,position:"relative",height:200}}>
+              {/* Left gauge */}
+              <div style={{position:"absolute",left:0,width:"52%",zIndex:2,filter:"drop-shadow(4px 0 12px #10b98140)"}}>
+                <RoundCyberGauge value={stats.aC} min={0} max={15} color="#10b981" label="ΜΕΣΗ ΚΑΤΑΝΑΛΩΣΗ" unit="L/100km" T={T}/>
+              </div>
+              {/* Right gauge — overlaps left by ~10% */}
+              <div style={{position:"absolute",right:0,width:"52%",zIndex:1,filter:"drop-shadow(-4px 0 12px #f9731640)"}}>
+                <RoundCyberGauge value={stats.aP} min={1} max={2.5} color="#f97316" label="ΜΕΣΗ ΤΙΜΗ/L" unit="€/L" T={T}/>
+              </div>
             </div>
             <div style={{...CS(),marginBottom:14}}>
               <div style={{fontSize:12,fontWeight:"bold",marginBottom:8,color:T.tx}}>📊 Μηνιαία Έξοδα · {fY!=="all"?fY:"Όλα τα έτη"}</div>
               <BarChart data={monthlyBarData} color={col} T={T}/>
             </div>
-            {filtExp.length>0&&(
+            {/* ✅ FIX: ΚΑΤΑΝΟΜΗ — uses allExp (vehicle total), not filtExp */}
+            {allExp.length>0&&(
               <div style={CS()}>
-                <div style={{fontSize:12,fontWeight:"bold",marginBottom:10,color:T.tx}}>🗂️ Κατανομή Εξόδων</div>
+                <div style={{fontSize:12,fontWeight:"bold",marginBottom:4,color:T.tx}}>🗂️ Κατανομή Εξόδων</div>
+                <div style={{fontSize:10,color:T.mt,marginBottom:10}}>Σύνολο οχήματος · {(expenses[vid]||[]).length} εγγραφές</div>
                 {EXPENSE_CATS.map(cat=>{
-                  const tot=filtExp.filter(e=>e.category===cat.id).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
+                  const tot=(expenses[vid]||[]).filter(e=>(e.category||"custom")===cat.id).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
                   if(!tot)return null;
-                  const pct=stats.expSpent>0?(tot/stats.expSpent*100):0;
+                  const grandTotal=(expenses[vid]||[]).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
+                  const pct=grandTotal>0?(tot/grandTotal*100):0;
                   return(
-                    <div key={cat.id} style={{marginBottom:8}}>
-                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                        <span style={{fontSize:12}}>{cat.icon} {cat.label}</span>
-                        <span style={{fontSize:12,fontWeight:"bold"}}>{fmt(tot)}€ <span style={{color:T.mt,fontWeight:"normal"}}>({pct.toFixed(0)}%)</span></span>
+                    <div key={cat.id} style={{marginBottom:10}}>
+                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                        <span style={{fontSize:13}}>{cat.icon} {cat.label}</span>
+                        <span style={{fontSize:13,fontWeight:"bold"}}>{fmt(tot)}€ <span style={{color:T.mt,fontWeight:"normal",fontSize:11}}>({pct.toFixed(0)}%)</span></span>
                       </div>
-                      <div style={{background:T.br,borderRadius:4,height:6}}>
-                        <div style={{background:col,width:`${pct}%`,height:6,borderRadius:4,transition:"width 0.4s"}}/>
+                      <div style={{background:T.br,borderRadius:4,height:7,overflow:"hidden"}}>
+                        <div style={{background:col,width:`${pct}%`,height:7,borderRadius:4,transition:"width 0.5s ease"}}/>
                       </div>
                     </div>
                   );
