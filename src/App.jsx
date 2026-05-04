@@ -68,13 +68,22 @@ function RoundCyberGauge({value,min,max,color,label,unit,T}){
   return(
     <div style={{background:"#0a0a0f",borderRadius:"50%",padding:5,border:`2px solid ${color}`,width:"100%",aspectRatio:"1/1",position:"relative"}}>
       <svg viewBox="0 0 104 104">
-        <path d={`M ${cx+R*Math.cos(sA)} ${cy+R*Math.sin(sA)} A ${R} ${R} 0 1 1 ${cx+R*Math.cos(eA)} ${cy+R*Math.sin(eA)}`} fill="none" stroke={T.br} strokeWidth={6} strokeLinecap="round"/>
+        {/* Track */}
+        <path d={`M ${cx+R*Math.cos(sA)} ${cy+R*Math.sin(sA)} A ${R} ${R} 0 1 1 ${cx+R*Math.cos(eA)} ${cy+R*Math.sin(eA)}`} fill="none" stroke="#1e1e30" strokeWidth={6} strokeLinecap="round"/>
+        {/* Arc */}
         <path d={`M ${cx+R*Math.cos(sA)} ${cy+R*Math.sin(sA)} A ${R} ${R} 0 ${pct>0.5?1:0} 1 ${nx} ${ny}`} fill="none" stroke={color} strokeWidth={6} strokeLinecap="round"/>
-        <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={color} strokeWidth={2}/>
-        <text x={cx} y={cy+5} textAnchor="middle" fill={color} fontSize={10} fontWeight="800">{fmt(value,1)}</text>
-        <text x={cx} y={cy+15} textAnchor="middle" fill={T.mt} fontSize={5}>{unit}</text>
+        {/* Needle */}
+        <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={color} strokeWidth={2.5} strokeLinecap="round"/>
+        {/* Center dot */}
+        <circle cx={cx} cy={cy} r={2.5} fill={color}/>
+        {/* Value — λευκό με glow */}
+        <text x={cx} y={cy+4} textAnchor="middle" fill="#ffffff" fontSize={11} fontWeight="900"
+          style={{filter:`drop-shadow(0 0 4px ${color})`}}>{fmt(value,1)}</text>
+        {/* Unit — ανοιχτό γκρι */}
+        <text x={cx} y={cy+14} textAnchor="middle" fill="#9999bb" fontSize={5.5}>{unit}</text>
       </svg>
-      <div style={{position:"absolute",bottom:8,width:"100%",textAlign:"center",fontSize:7,color,fontWeight:700}}>{label}</div>
+      {/* Label — accent color */}
+      <div style={{position:"absolute",bottom:6,width:"100%",textAlign:"center",fontSize:7,color,fontWeight:700,letterSpacing:0.5}}>{label}</div>
     </div>
   );
 }
@@ -154,6 +163,7 @@ export default function FuelLog(){
   const [fM,setFM]=useState("all");
   const [openFuelM,setOpenFuelM]=useState({});
   const [openExpM,setOpenExpM]=useState({});
+  const [openCat,setOpenCat]=useState(null); // drill-down κατηγορίας
 
   const [fuelForm,setFuelForm]=useState(emptyFuel("diesel"));
   const [expForm,setExpForm]=useState(emptyExp());
@@ -545,25 +555,58 @@ export default function FuelLog(){
               <div style={{fontSize:12,fontWeight:"bold",marginBottom:8,color:T.tx}}>📊 Μηνιαία Έξοδα · {fY!=="all"?fY:"Όλα τα έτη"}</div>
               <BarChart data={monthlyBarData} color={col} T={T}/>
             </div>
-            {/* ✅ FIX: ΚΑΤΑΝΟΜΗ — uses allExp (vehicle total), not filtExp */}
+            {/* ΚΑΤΑΝΟΜΗ with drill-down */}
             {allExp.length>0&&(
               <div style={CS()}>
                 <div style={{fontSize:12,fontWeight:"bold",marginBottom:4,color:T.tx}}>🗂️ Κατανομή Εξόδων</div>
-                <div style={{fontSize:10,color:T.mt,marginBottom:10}}>Σύνολο οχήματος · {(expenses[vid]||[]).length} εγγραφές</div>
+                <div style={{fontSize:10,color:T.mt,marginBottom:10}}>Σύνολο οχήματος · {(expenses[vid]||[]).length} εγγραφές · tap για ανάλυση</div>
                 {EXPENSE_CATS.map(cat=>{
-                  const tot=(expenses[vid]||[]).filter(e=>(e.category||"custom")===cat.id).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
+                  const catEntries=(expenses[vid]||[]).filter(e=>(e.category||"custom")===cat.id).sort((a,b)=>new Date(b.date)-new Date(a.date));
+                  const tot=catEntries.reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
                   if(!tot)return null;
                   const grandTotal=(expenses[vid]||[]).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
                   const pct=grandTotal>0?(tot/grandTotal*100):0;
+                  const isOpen=openCat===cat.id;
                   return(
                     <div key={cat.id} style={{marginBottom:10}}>
-                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                        <span style={{fontSize:13}}>{cat.icon} {cat.label}</span>
-                        <span style={{fontSize:13,fontWeight:"bold"}}>{fmt(tot)}€ <span style={{color:T.mt,fontWeight:"normal",fontSize:11}}>({pct.toFixed(0)}%)</span></span>
+                      <div onClick={()=>setOpenCat(isOpen?null:cat.id)}
+                        style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5,cursor:"pointer",padding:"4px 0"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <span style={{fontSize:16}}>{cat.icon}</span>
+                          <span style={{fontSize:13,fontWeight:"bold"}}>{cat.label}</span>
+                          <span style={{fontSize:10,color:T.mt,background:T.br,padding:"1px 6px",borderRadius:8}}>{catEntries.length}</span>
+                        </div>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <span style={{fontSize:13,fontWeight:"bold"}}>{fmt(tot)}€</span>
+                          <span style={{color:T.mt,fontSize:11}}>({pct.toFixed(0)}%)</span>
+                          <span style={{fontSize:11,color:T.mt}}>{isOpen?"▲":"▼"}</span>
+                        </div>
                       </div>
-                      <div style={{background:T.br,borderRadius:4,height:7,overflow:"hidden"}}>
+                      <div style={{background:T.br,borderRadius:4,height:7,overflow:"hidden",marginBottom:isOpen?8:0}}>
                         <div style={{background:col,width:`${pct}%`,height:7,borderRadius:4,transition:"width 0.5s ease"}}/>
                       </div>
+                      {isOpen&&(
+                        <div style={{background:T.bg,borderRadius:8,overflow:"hidden",border:`1px solid ${T.br}`}}>
+                          {catEntries.map((e,i)=>(
+                            <div key={e.id} style={{
+                              display:"flex",justifyContent:"space-between",alignItems:"center",
+                              padding:"8px 12px",
+                              background:i%2===0?T.bg:T.sf,
+                              borderBottom:i<catEntries.length-1?`1px solid ${T.ft}`:"none",
+                            }}>
+                              <div>
+                                <div style={{fontSize:12,fontWeight:"bold"}}>{e.label||cat.label}</div>
+                                <div style={{fontSize:10,color:T.mt}}>{formatDate(e.date)}</div>
+                              </div>
+                              <span style={{fontSize:13,fontWeight:"bold",color:"#e11d48"}}>-{fmt(e.amount)}€</span>
+                            </div>
+                          ))}
+                          <div style={{padding:"6px 12px",background:T.br,display:"flex",justifyContent:"space-between"}}>
+                            <span style={{fontSize:11,color:T.mt}}>Σύνολο {cat.label}</span>
+                            <span style={{fontSize:12,fontWeight:"bold",color:col}}>{fmt(tot)}€</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
