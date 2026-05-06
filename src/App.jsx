@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
+import { jsPDF } from "jspdf";
 
 // ========== CONSTANTS ==========
 const FUEL_COLORS = ["#f97316","#3b82f6","#10b981","#e11d48","#8b5cf6","#06b6d4","#eab308","#ec4899"];
@@ -24,6 +25,14 @@ const MONTHS_SHORT=["Ιαν","Φεβ","Μαρ","Απρ","Μαΐ","Ιουν","Ι�
 
 // ========== UTILITIES ==========
 const uid=()=>Math.random().toString(36).substr(2,9);
+// Υπολογισμός L/100km για συγκεκριμένο γέμισμα (με βάση το προηγούμενο ODO)
+const calcConsumption=(entry, prevEntry)=>{
+  if(!entry||!prevEntry)return null;
+  const curOdo=parseFloat(entry.odo), prevOdo=parseFloat(prevEntry.odo);
+  const liters=parseFloat(entry.liters);
+  if(!curOdo||!prevOdo||curOdo<=prevOdo||!liters)return null;
+  return liters/(curOdo-prevOdo)*100;
+};
 const fmt=(n,d=2)=>(n!=null&&!isNaN(n))?(+n).toFixed(d):"0.00";
 const today=()=>new Date().toISOString().split("T")[0];
 const formatDate=ds=>{
@@ -63,26 +72,60 @@ const emptyExp=()=>({date:today(),category:"tolls",label:"",amount:"",notes:""})
 // ========== COMPONENTS ==========
 function RoundCyberGauge({value,min,max,color,label,unit,T}){
   const pct=Math.min(1,Math.max(0,(value-min)/(max-min||1)));
-  const R=42,cx=52,cy=52,sA=Math.PI*0.7,eA=Math.PI*2.3,vA=sA+(eA-sA)*pct;
-  const nx=cx+(R-11)*Math.cos(vA),ny=cy+(R-11)*Math.sin(vA);
+  const R=42,cx=52,cy=52;
+  // Start angle at ~126° (bottom-left), sweep ~288° clockwise to bottom-right
+  const sA=Math.PI*0.7, eA=Math.PI*2.3;
+  const totalArc = eA - sA; // ~1.6π ≈ 288°
+  const vA = sA + totalArc * pct;
+  
+  // Arc path helpers
+  const arcX = (angle) => cx + R * Math.cos(angle);
+  const arcY = (angle) => cy + R * Math.sin(angle);
+  
+  // Needle endpoint (reaches the arc)
+  const nx = cx + R * Math.cos(vA);
+  const ny = cy + R * Math.sin(vA);
+  
+  // Large-arc-flag: 1 if the arc angle > π (180°)
+  const trackArcAngle = totalArc;
+  const valueArcAngle = totalArc * pct;
+  const trackLargeArc = trackArcAngle > Math.PI ? 1 : 0;
+  const valueLargeArc = valueArcAngle > Math.PI ? 1 : 0;
+
   return(
     <div style={{background:"#0a0a0f",borderRadius:"50%",padding:5,border:`2px solid ${color}`,width:"100%",aspectRatio:"1/1",position:"relative"}}>
       <svg viewBox="0 0 104 104">
-        {/* Track */}
-        <path d={`M ${cx+R*Math.cos(sA)} ${cy+R*Math.sin(sA)} A ${R} ${R} 0 1 1 ${cx+R*Math.cos(eA)} ${cy+R*Math.sin(eA)}`} fill="none" stroke="#1e1e30" strokeWidth={6} strokeLinecap="round"/>
-        {/* Arc */}
-        <path d={`M ${cx+R*Math.cos(sA)} ${cy+R*Math.sin(sA)} A ${R} ${R} 0 ${pct>0.5?1:0} 1 ${nx} ${ny}`} fill="none" stroke={color} strokeWidth={6} strokeLinecap="round"/>
+        {/* Track (background arc) */}
+        <path 
+          d={`M ${arcX(sA)} ${arcY(sA)} A ${R} ${R} 0 ${trackLargeArc} 1 ${arcX(eA)} ${arcY(eA)}`} 
+          fill="none" stroke="#1e1e30" strokeWidth={6} strokeLinecap="round"
+        />
+        {/* Value arc */}
+        {pct > 0.005 && (
+          <path 
+            d={`M ${arcX(sA)} ${arcY(sA)} A ${R} ${R} 0 ${valueLargeArc} 1 ${nx} ${ny}`} 
+            fill="none" stroke={color} strokeWidth={6} strokeLinecap="round"
+          />
+        )}
+        {/* Glow effect on value arc */}
+        {pct > 0.005 && (
+          <path 
+            d={`M ${arcX(sA)} ${arcY(sA)} A ${R} ${R} 0 ${valueLargeArc} 1 ${nx} ${ny}`} 
+            fill="none" stroke={color} strokeWidth={10} strokeLinecap="round" opacity={0.15}
+          />
+        )}
         {/* Needle */}
         <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={color} strokeWidth={2.5} strokeLinecap="round"/>
         {/* Center dot */}
-        <circle cx={cx} cy={cy} r={2.5} fill={color}/>
-        {/* Value — λευκό με glow */}
+        <circle cx={cx} cy={cy} r={3} fill={color}/>
+        <circle cx={cx} cy={cy} r={1.5} fill="#0a0a0f"/>
+        {/* Value text */}
         <text x={cx} y={cy+4} textAnchor="middle" fill="#ffffff" fontSize={11} fontWeight="900"
           style={{filter:`drop-shadow(0 0 4px ${color})`}}>{fmt(value,1)}</text>
-        {/* Unit — ανοιχτό γκρι */}
+        {/* Unit */}
         <text x={cx} y={cy+14} textAnchor="middle" fill="#9999bb" fontSize={5.5}>{unit}</text>
       </svg>
-      {/* Label — accent color */}
+      {/* Label */}
       <div style={{position:"absolute",bottom:6,width:"100%",textAlign:"center",fontSize:7,color,fontWeight:700,letterSpacing:0.5}}>{label}</div>
     </div>
   );
@@ -148,6 +191,69 @@ function MonthGroup({monthKey,label,badge,total,isOpen,onToggle,T,children}){
   );
 }
 
+// ========== FUEL ENTRY ROW (#5, #10) ==========
+function FuelEntryRow({e,i,total,allFuel,T,col,swipeId,setSwipeId,swipeStartX,onEdit,onDel}){
+  const ftype=FTYPES.find(f=>f.id===e.fuelType);
+  const prev=e._gi>0?allFuel[e._gi-1]:null;
+  const diffKm=(e.odo!=null&&prev?.odo!=null&&e.odo>prev.odo)?(e.odo-prev.odo):null;
+  // #5: κατανάλωση ανά γέμισμα
+  const cons=e._cons!=null?e._cons:calcConsumption(e,prev);
+  const isSwipe=swipeId===e.id;
+
+  return(
+    <div style={{position:"relative",overflow:"hidden"}}
+      onTouchStart={ev=>{swipeStartX.current=ev.touches[0].clientX;}}
+      onTouchEnd={ev=>{
+        if(swipeStartX.current===null)return;
+        const dx=swipeStartX.current-ev.changedTouches[0].clientX;
+        if(dx>60)setSwipeId(e.id);
+        else if(dx<-20)setSwipeId(null);
+        swipeStartX.current=null;
+      }}
+    >
+      {/* #10: Swipe-to-delete background */}
+      <div style={{position:"absolute",right:0,top:0,bottom:0,width:90,background:"#e11d48",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}
+        onClick={()=>{onDel(e.id);setSwipeId(null);}}>
+        <span style={{color:"#fff",fontSize:22}}>🗑️</span>
+      </div>
+      {/* Entry content */}
+      <div style={{
+        padding:"10px 14px",
+        background:i%2===0?T.sf:T.bg,
+        borderBottom:i<total-1?`1px solid ${T.ft}`:"none",
+        transform:isSwipe?"translateX(-90px)":"translateX(0)",
+        transition:"transform 0.25s ease",
+        position:"relative",zIndex:1,
+      }}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+          <span style={{fontSize:13,fontWeight:"bold"}}>{formatDate(e.date)}</span>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            {diffKm!=null&&diffKm>0&&<span style={{fontSize:11,color:"#10b981"}}>📍{diffKm}χλμ</span>}
+            <span style={{fontSize:11,color:T.mt}}>{ftype?`${ftype.icon} ${ftype.label}`:e.fuelType}</span>
+          </div>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <span style={{fontSize:15,fontWeight:"bold"}}>{fmt(e.liters,2)} L</span>
+            <span style={{fontSize:12,marginLeft:8,color:T.mt}}>{fmt(e.ppl,3)} €/L</span>
+            {/* #5: κατανάλωση */}
+            {cons!=null&&(
+              <span style={{fontSize:11,marginLeft:8,color:col,fontWeight:"bold"}}>{fmt(cons,1)} L/100km</span>
+            )}
+            {e.odo&&<div style={{fontSize:11,color:T.mt,marginTop:2}}>ODO: {e.odo.toLocaleString()} km</div>}
+            {e.notes&&<div style={{fontSize:11,color:T.mt,marginTop:2}}>📝 {e.notes}</div>}
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:16,fontWeight:"bold",color:"#ef4444"}}>{fmt(e.total)}€</span>
+            <button onClick={()=>onEdit({...e})} style={{border:"none",background:T.br,color:T.mt,cursor:"pointer",fontSize:12,padding:"4px 7px",borderRadius:6}}>✏️</button>
+            <button onClick={()=>onDel(e.id)} style={{border:"none",background:"none",color:T.mt,cursor:"pointer",fontSize:16}}>✕</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ========== MAIN APP ==========
 export default function FuelLog(){
   const [dark,setDark]=useState(true);
@@ -163,7 +269,10 @@ export default function FuelLog(){
   const [fM,setFM]=useState("all");
   const [openFuelM,setOpenFuelM]=useState({});
   const [openExpM,setOpenExpM]=useState({});
-  const [openCat,setOpenCat]=useState(null); // drill-down κατηγορίας
+  const [openCat,setOpenCat]=useState(null);
+  const [histSort,setHistSort]=useState("date_desc"); // #11
+  const [swipeId,setSwipeId]=useState(null); // #10 swipe-to-delete
+  const swipeStartX=useRef(null);
 
   const [fuelForm,setFuelForm]=useState(emptyFuel("diesel"));
   const [expForm,setExpForm]=useState(emptyExp());
@@ -173,7 +282,7 @@ export default function FuelLog(){
   const [showVInfo,setShowVInfo]=useState(false);
   const [showAbout,setShowAbout]=useState(false);
   const [showIO,setShowIO]=useState(false);
-  const [showEditV,setShowEditV]=useState(false); // ✅ edit vehicle
+  const [showEditV,setShowEditV]=useState(false);
   const [editVData,setEditVData]=useState(null);
   const [editFuelE,setEditFuelE]=useState(null);
   const [editExpE,setEditExpE]=useState(null);
@@ -202,19 +311,41 @@ export default function FuelLog(){
     const fuelSpent=filtFuel.reduce((s,x)=>s+(parseFloat(x.total)||0),0);
     const expSpent=filtExp.reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
     const tL=filtFuel.reduce((s,x)=>s+(parseFloat(x.liters)||0),0);
-    const wK=filtFuel.filter(x=>parseFloat(x.km)>0&&parseFloat(x.liters)>0);
-    const aC=wK.length?wK.reduce((s,x)=>s+(parseFloat(x.liters)/parseFloat(x.km)*100),0)/wK.length:0;
+    
+    // FIX: Μέση κατανάλωση από consecutive ODO readings
+    const withOdo = filtFuel.filter(x => x.odo != null && parseFloat(x.odo) > 0);
+    let totalConsL = 0, totalConsKm = 0;
+    for (let i = 1; i < withOdo.length; i++) {
+      const prevOdo = parseFloat(withOdo[i-1].odo);
+      const curOdo = parseFloat(withOdo[i].odo);
+      const curLiters = parseFloat(withOdo[i].liters) || 0;
+      if (curOdo > prevOdo && curLiters > 0) {
+        totalConsKm += (curOdo - prevOdo);
+        totalConsL += curLiters;
+      }
+    }
+    const aC = totalConsKm > 0 ? (totalConsL / totalConsKm * 100) : 0;
+    
     const wP=filtFuel.filter(x=>parseFloat(x.ppl)>0);
     const aP=wP.length?+(wP.reduce((s,x)=>s+parseFloat(x.ppl),0)/wP.length).toFixed(3):0;
-    // ✅ NEW: Κόστος ανά χλμ — από ODO readings
-    const odoEntries=filtFuel.filter(x=>x.odo!=null).sort((a,b)=>a.odo-b.odo);
-    const totalKm=odoEntries.length>=2?(odoEntries[odoEntries.length-1].odo-odoEntries[0].odo):0;
+    
+    // Κόστος ανά χλμ — από ODO readings
+    const odoEntries=filtFuel.filter(x=>x.odo!=null && parseFloat(x.odo) > 0).sort((a,b)=>parseFloat(a.odo)-parseFloat(b.odo));
+    const totalKm=odoEntries.length>=2?(parseFloat(odoEntries[odoEntries.length-1].odo)-parseFloat(odoEntries[0].odo)):0;
     const costPerKm=totalKm>0?((fuelSpent+expSpent)/totalKm):0;
     const fuelCostPerKm=totalKm>0?(fuelSpent/totalKm):0;
     return{fuelSpent,expSpent,totalSpent:fuelSpent+expSpent,tL,aC,aP,totalKm,costPerKm,fuelCostPerKm};
   },[filtFuel,filtExp]);
 
-  // Reminders — ALL vehicles, 30 days ahead
+  // FIX #1: Dynamic gauge min/max από πραγματικά δεδομένα
+  const gaugeRanges=useMemo(()=>{
+    const ppls=allFuel.map(x=>parseFloat(x.ppl)).filter(x=>x>0);
+    const pplMin=ppls.length?Math.max(0.5,Math.min(...ppls)-0.2):0.8;
+    const pplMax=ppls.length?Math.max(...ppls)+0.3:3.0;
+    return{consMin:0,consMax:20,pplMin,pplMax};
+  },[allFuel]);
+
+  // Reminders
   const reminders=useMemo(()=>{
     const list=[];
     vehicles.forEach(v=>{
@@ -251,12 +382,13 @@ export default function FuelLog(){
 
   const fuelByMonth=useMemo(()=>{
     const map={};
-    // allFuel is already sorted by date asc
-    allFuel.forEach((e,globalIdx)=>{
+    allFuel.forEach((e,gi)=>{
       const d=new Date(e.date),k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
       if(!map[k])map[k]={key:k,label:`${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`,entries:[],totalAmt:0,totalL:0};
-      // store globalIdx so we can look up previous fill across months
-      map[k].entries.push({...e,_gi:globalIdx});
+      // FIX #3: αποθήκευση _gi και _cons ώστε το edit/display να έχει πάντα σωστά χλμ
+      const prev=gi>0?allFuel[gi-1]:null;
+      const cons=calcConsumption({...e,odo:e.odo},prev?{odo:prev.odo}:null);
+      map[k].entries.push({...e,_gi:gi,_cons:cons});
       map[k].totalAmt+=(parseFloat(e.total)||0);map[k].totalL+=(parseFloat(e.liters)||0);
     });
     return Object.values(map).sort((a,b)=>b.key.localeCompare(a.key));
@@ -267,6 +399,22 @@ export default function FuelLog(){
     [...allFuel,...allExp].forEach(e=>{if(e.date)ys.add(e.date.slice(0,4));});
     return[...ys].sort((a,b)=>b-a);
   },[allFuel,allExp]);
+
+  // #11: Ταξινομημένο ιστορικό
+  const sortedFuel=useMemo(()=>{
+    const withCons=allFuel.map((e,gi)=>{
+      const prev=gi>0?allFuel[gi-1]:null;
+      const cons=calcConsumption(e,prev);
+      return{...e,_gi:gi,_cons:cons};
+    });
+    if(histSort==="date_desc")return[...withCons].reverse();
+    if(histSort==="date_asc")return[...withCons];
+    if(histSort==="cost_desc")return[...withCons].sort((a,b)=>(parseFloat(b.total)||0)-(parseFloat(a.total)||0));
+    if(histSort==="cost_asc")return[...withCons].sort((a,b)=>(parseFloat(a.total)||0)-(parseFloat(b.total)||0));
+    if(histSort==="liters_desc")return[...withCons].sort((a,b)=>(parseFloat(b.liters)||0)-(parseFloat(a.liters)||0));
+    if(histSort==="cons_desc")return[...withCons].filter(e=>e._cons!=null).sort((a,b)=>b._cons-a._cons).concat(withCons.filter(e=>e._cons==null));
+    return[...withCons].reverse();
+  },[allFuel,histSort]);
 
   const vFuelTypes=useMemo(()=>{
     const ft=av.fuelType||"diesel",ft2=av.fuelType2;
@@ -323,6 +471,86 @@ export default function FuelLog(){
   };
   const updateVInfo=(f,val)=>setVehicles(p=>p.map(v=>v.id===vid?{...v,info:{...v.info,[f]:val}}:v));
 
+  // FIX #2: Import — ενημέρωση vid μετά το import
+  const handleImport=()=>{
+    try{
+      const d=JSON.parse(importText);
+      if(d.vehicles)setVehicles(d.vehicles);
+      if(d.entries)setEntries(d.entries);
+      if(d.expenses)setExpenses(d.expenses);
+      // FIX: set valid vid
+      if(d.vehicles&&d.vehicles.length>0){
+        const savedVid=d.vid||(d.vehicles[0].id);
+        const validVid=d.vehicles.find(v=>v.id===savedVid)?savedVid:d.vehicles[0].id;
+        setVid(validVid);
+      }
+      setImportMsg("✅ Εισαγωγή επιτυχής!");setImportText("");
+    }catch(e){setImportMsg("❌ Σφάλμα: Μη έγκυρο JSON.");}
+  };
+
+  // #7: PDF Export
+  const exportPDF=()=>{
+    {
+      const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+      const pageW=210;
+      doc.setFont("helvetica","bold");
+      doc.setFontSize(16);
+      doc.text(`FuelLog - ${av.icon} ${av.name}`,14,18);
+      doc.setFontSize(9);doc.setFont("helvetica","normal");
+      doc.setTextColor(120);
+      doc.text(`Εξαγωγή: ${today()} | Γεμίσματα: ${allFuel.length} | Σύνολο: ${fmt(allFuel.reduce((s,x)=>s+(parseFloat(x.total)||0),0))}€`,14,26);
+      doc.setTextColor(0);
+      // Header
+      let y=34;
+      doc.setFillColor(30,30,50);doc.setTextColor(200,200,255);
+      doc.rect(14,y,pageW-28,7,"F");
+      doc.setFontSize(8);doc.setFont("helvetica","bold");
+      doc.text("Ημερομηνία",16,y+5);doc.text("Τύπος",50,y+5);doc.text("Λίτρα",75,y+5);
+      doc.text("€/L",95,y+5);doc.text("Σύνολο",110,y+5);doc.text("ODO",128,y+5);
+      doc.text("L/100km",148,y+5);doc.text("Σημειώσεις",168,y+5);
+      y+=9;
+      doc.setFont("helvetica","normal");doc.setTextColor(0);doc.setFontSize(8);
+      allFuel.forEach((e,gi)=>{
+        if(y>280){doc.addPage();y=14;}
+        const prev=gi>0?allFuel[gi-1]:null;
+        const cons=calcConsumption(e,prev);
+        const bg=gi%2===0?[248,248,252]:[255,255,255];
+        doc.setFillColor(...bg);doc.rect(14,y-3,pageW-28,7,"F");
+        doc.text(formatDate(e.date),16,y+2);
+        doc.text((FTYPES.find(f=>f.id===e.fuelType)||{label:e.fuelType}).label.slice(0,10),50,y+2);
+        doc.text(fmt(e.liters),75,y+2);
+        doc.text(fmt(e.ppl,3),95,y+2);
+        doc.text(fmt(e.total)+"€",110,y+2);
+        doc.text(e.odo?String(e.odo):"—",128,y+2);
+        doc.text(cons?fmt(cons,1):"—",148,y+2);
+        doc.text((e.notes||"").slice(0,20),168,y+2);
+        y+=7;
+      });
+      // Expenses
+      if(allExp.length>0){
+        if(y>260){doc.addPage();y=14;}
+        y+=6;
+        doc.setFont("helvetica","bold");doc.setFontSize(12);
+        doc.text("Λοιπά Έξοδα",14,y);y+=6;
+        doc.setFillColor(30,30,50);doc.setTextColor(200,200,255);
+        doc.rect(14,y,pageW-28,7,"F");doc.setFontSize(8);
+        doc.text("Ημερομηνία",16,y+5);doc.text("Κατηγορία",50,y+5);doc.text("Περιγραφή",90,y+5);doc.text("Ποσό",160,y+5);
+        y+=9;doc.setFont("helvetica","normal");doc.setTextColor(0);
+        allExp.forEach((e,i)=>{
+          if(y>280){doc.addPage();y=14;}
+          const bg=i%2===0?[248,248,252]:[255,255,255];
+          doc.setFillColor(...bg);doc.rect(14,y-3,pageW-28,7,"F");
+          doc.text(formatDate(e.date),16,y+2);
+          doc.text((EXPENSE_CATS.find(c=>c.id===e.category)||{label:e.category}).label,50,y+2);
+          doc.text((e.label||"").slice(0,30),90,y+2);
+          doc.text(fmt(e.amount)+"€",160,y+2);
+          y+=7;
+        });
+      }
+      doc.save(`fuellog_${av.name}_${today()}.pdf`);
+    }
+  };
+
   // Export/Import
   const exportJSON=()=>{
     const a=document.createElement("a");
@@ -339,13 +567,7 @@ export default function FuelLog(){
     a.href="data:text/csv;charset=utf-8,\uFEFF"+encodeURIComponent(csv);
     a.download=`fuellog_${today()}.csv`;a.click();
   };
-  const handleImport=()=>{
-    try{
-      const d=JSON.parse(importText);
-      if(d.vehicles)setVehicles(d.vehicles);if(d.entries)setEntries(d.entries);if(d.expenses)setExpenses(d.expenses);
-      setImportMsg("✅ Εισαγωγή επιτυχής!");setImportText("");
-    }catch(e){setImportMsg("❌ Σφάλμα: Μη έγκυρο JSON.");}
-  };
+  // (handleImport defined above)
   const handleImportFile=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{setImportText(ev.target.result);setImportMsg("");};r.readAsText(f);};
 
   const IS={width:"100%",padding:12,marginBottom:10,borderRadius:8,background:T.inp,color:T.tx,border:`1px solid ${T.ib}`,boxSizing:"border-box",fontSize:14};
@@ -377,7 +599,6 @@ export default function FuelLog(){
             <button onClick={()=>setVid(v.id)} style={{padding:"6px 12px",border:"none",cursor:"pointer",whiteSpace:"nowrap",background:"transparent",color:vid===v.id?"#fff":T.mt,fontWeight:"bold",fontSize:13}}>
               {v.icon} {v.name}
             </button>
-            {/* ✅ Edit button — only for active vehicle */}
             {vid===v.id&&(
               <button onClick={()=>{setEditVData({...v});setShowEditV(true);}}
                 style={{border:"none",background:"rgba(0,0,0,0.2)",color:"#fff",cursor:"pointer",padding:"6px 8px",fontSize:12,borderLeft:"1px solid rgba(255,255,255,0.2)"}}>
@@ -469,8 +690,29 @@ export default function FuelLog(){
             <input type="number" step="0.001" placeholder="⬡  Τιμή €/λίτρο" value={fuelForm.ppl} onChange={e=>setFuelForm({...fuelForm,ppl:e.target.value})} style={IS}/>
             <input type="number" step="0.01" placeholder="💶  Συνολικό Ποσό €" value={fuelForm.total} onChange={e=>setFuelForm({...fuelForm,total:e.target.value})} style={IS}/>
             {parseFloat(fuelForm.ppl)>0&&parseFloat(fuelForm.total)>0&&(
-              <div style={{background:dark?"#0d2010":"#d4eed8",color:"#10b981",padding:"9px 14px",borderRadius:8,marginBottom:10,fontSize:13,fontWeight:"bold",border:"1px solid #10b981"}}>
-                🧮 Υπολογισμός: <b>{+(parseFloat(fuelForm.total)/parseFloat(fuelForm.ppl)).toFixed(2)}</b> λίτρα
+              <div style={{background:dark?"#0d2010":"#d4eed8",color:"#10b981",padding:"9px 14px",borderRadius:8,marginBottom:10,fontSize:13,border:"1px solid #10b981"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span>🧮 <b>{+(parseFloat(fuelForm.total)/parseFloat(fuelForm.ppl)).toFixed(2)}</b> λίτρα</span>
+                  <span style={{fontSize:11,color:"#10b981",opacity:0.8}}>{fmt(parseFloat(fuelForm.ppl),3)} €/L</span>
+                </div>
+                {/* #4: Live κατανάλωση αν υπάρχει ODO και προηγούμενο */}
+                {(()=>{
+                  const prevE=allFuel.length>0?allFuel[allFuel.length-1]:null;
+                  const curOdo=parseFloat(fuelForm.odo);
+                  const prevOdo=prevE?parseFloat(prevE.odo):null;
+                  const liters=parseFloat(fuelForm.total)/parseFloat(fuelForm.ppl);
+                  if(curOdo>0&&prevOdo>0&&curOdo>prevOdo&&liters>0){
+                    const cons=(liters/(curOdo-prevOdo)*100).toFixed(1);
+                    const diffKm=curOdo-prevOdo;
+                    return(
+                      <div style={{marginTop:6,paddingTop:6,borderTop:"1px solid #10b98140",display:"flex",justifyContent:"space-between"}}>
+                        <span style={{fontSize:11}}>📍 {diffKm} χλμ από τελευταίο γέμισμα</span>
+                        <span style={{fontSize:12,fontWeight:"bold"}}>{cons} L/100km</span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             )}
             <input type="number" placeholder="🔢  Odometer (Συνολικά χλμ)" value={fuelForm.odo} onChange={e=>setFuelForm({...fuelForm,odo:e.target.value})} style={IS}/>
@@ -538,19 +780,19 @@ export default function FuelLog(){
                 <div key={label} style={CS()}><div style={{fontSize:9,color:T.mt,marginBottom:3}}>{label}</div><div style={{fontSize:18,fontWeight:"bold",color}}>{v}</div></div>
               ))}
             </div>
-            {/* ✅ GAUGES: flex overlap, maxWidth για desktop, σωστό flow για content κάτω */}
+            {/* GAUGES */}
             <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
               <div style={{width:"100%",maxWidth:380,display:"flex",alignItems:"center",overflow:"visible"}}>
                 <div style={{flex:"0 0 55%",zIndex:2,filter:"drop-shadow(3px 0 10px #10b98150)"}}>
-                  <RoundCyberGauge value={stats.aC} min={0} max={15} color="#10b981" label="ΜΕΣΗ ΚΑΤΑΝΑΛΩΣΗ" unit="L/100km" T={T}/>
+                  <RoundCyberGauge value={stats.aC} min={gaugeRanges.consMin} max={gaugeRanges.consMax} color="#10b981" label="ΜΕΣΗ ΚΑΤΑΝΑΛΩΣΗ" unit="L/100km" T={T}/>
                 </div>
                 <div style={{flex:"0 0 55%",marginLeft:"-10%",zIndex:1,filter:"drop-shadow(-3px 0 10px #f9731650)"}}>
-                  <RoundCyberGauge value={stats.aP} min={1} max={2.5} color="#f97316" label="ΜΕΣΗ ΤΙΜΗ/L" unit="€/L" T={T}/>
+                  <RoundCyberGauge value={stats.aP} min={gaugeRanges.pplMin} max={gaugeRanges.pplMax} color="#f97316" label="ΜΕΣΗ ΤΙΜΗ/L" unit="€/L" T={T}/>
                 </div>
               </div>
             </div>
 
-            {/* ✅ NEW: Κόστος ανά χλμ */}
+            {/* Κόστος ανά χλμ */}
             {stats.totalKm>0&&(
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
                 <div style={{...CS(),textAlign:"center",padding:10}}>
@@ -606,7 +848,6 @@ export default function FuelLog(){
                       </div>
                       {isOpen&&(
                         <div style={{background:T.bg,borderRadius:8,overflow:"hidden",border:`1px solid ${T.br}`}}>
-                          {/* Ομαδοποίηση ανά μήνα */}
                           {(()=>{
                             const byMonth={};
                             catEntries.forEach(e=>{
@@ -617,14 +858,12 @@ export default function FuelLog(){
                               byMonth[k].entries.push(e);
                               byMonth[k].total+=(parseFloat(e.amount)||0);
                             });
-                            return Object.entries(byMonth).map(([mk,{lbl,entries:me,total:mt}],mi)=>(
+                            return Object.entries(byMonth).map(([mk,{lbl,entries:me,total:mt}])=>(
                               <div key={mk}>
-                                {/* Month header */}
                                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 12px",background:T.br}}>
                                   <span style={{fontSize:11,fontWeight:"bold",color:T.tx}}>📅 {lbl}</span>
                                   <span style={{fontSize:11,fontWeight:"bold",color:col}}>-{fmt(mt)}€</span>
                                 </div>
-                                {/* Entries */}
                                 {me.map((e,i)=>(
                                   <div key={e.id} style={{
                                     display:"flex",justifyContent:"space-between",alignItems:"center",
@@ -642,7 +881,6 @@ export default function FuelLog(){
                               </div>
                             ));
                           })()}
-                          {/* Grand total footer */}
                           <div style={{padding:"8px 12px",background:T.ft,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                             <span style={{fontSize:11,color:T.mt,fontWeight:"bold"}}>ΣΥΝΟΛΟ {cat.label.toUpperCase()}</span>
                             <span style={{fontSize:14,fontWeight:"bold",color:col}}>{fmt(tot)}€</span>
@@ -660,45 +898,37 @@ export default function FuelLog(){
         {/* HISTORY */}
         {tab==="history"&&(
           <div>
-            <h3 style={{margin:"0 0 14px"}}>⛽ Ιστορικό Καυσίμων</h3>
+            {/* #11: Toolbar ταξινόμησης */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <h3 style={{margin:0}}>⛽ Ιστορικό</h3>
+              <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                <select value={histSort} onChange={e=>setHistSort(e.target.value)}
+                  style={{...IS,marginBottom:0,padding:"5px 8px",fontSize:11,width:"auto"}}>
+                  <option value="date_desc">📅 Νεότερο</option>
+                  <option value="date_asc">📅 Παλαιότερο</option>
+                  <option value="cost_desc">💶 Κόστος ↓</option>
+                  <option value="cost_asc">💶 Κόστος ↑</option>
+                  <option value="liters_desc">⛽ Λίτρα ↓</option>
+                  <option value="cons_desc">📊 Κατανάλωση ↓</option>
+                </select>
+                {/* #7: PDF Export */}
+                <button onClick={exportPDF} style={{border:"none",background:"#e11d48",color:"#fff",borderRadius:8,padding:"5px 9px",fontSize:11,cursor:"pointer",fontWeight:"bold",whiteSpace:"nowrap"}}>📄 PDF</button>
+              </div>
+            </div>
             {allFuel.length===0&&<div style={{textAlign:"center",color:T.mt,padding:30}}>Δεν υπάρχουν εγγραφές ακόμα.</div>}
-            {fuelByMonth.map(({key,label,entries:me,totalAmt,totalL})=>{
-              const reversed=[...me].reverse();
+            {/* Flat list για sorting — group by month μόνο αν sort=date_desc/asc */}
+            {(histSort==="date_desc"||histSort==="date_asc")?fuelByMonth.map(({key,label,entries:me,totalAmt,totalL})=>{
+              const sortedMe=histSort==="date_asc"?[...me]:[...me].reverse();
               return(
                 <MonthGroup key={key} monthKey={key} label={label} badge={`${me.length} γεμ. · ${fmt(totalL,1)}L`} total={`${fmt(totalAmt)}€`} isOpen={!!openFuelM[key]} onToggle={()=>setOpenFuelM(p=>({...p,[key]:!p[key]}))} T={T}>
-                  {reversed.map((e,i)=>{
-                    // ✅ FIX: lookup previous fill globally (works across months)
-                    const prevGlobal=e._gi>0?allFuel[e._gi-1]:null;
-                    const diffKm=(e.odo!=null&&(prevGlobal&&prevGlobal.odo)!=null&&e.odo>prevGlobal.odo)?(e.odo-prevGlobal.odo):null;
-                    const ftype=FTYPES.find(f=>f.id===e.fuelType);
-                    return(
-                      <div key={e.id} style={{padding:"10px 14px",background:i%2===0?T.sf:T.bg,borderBottom:i<reversed.length-1?`1px solid ${T.ft}`:"none"}}>
-                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                          <span style={{fontSize:13,fontWeight:"bold"}}>{formatDate(e.date)}</span>
-                          <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                            {diffKm!=null&&diffKm>0&&<span style={{fontSize:11,color:"#10b981"}}>📍{diffKm}χλμ</span>}
-                            <span style={{fontSize:11,color:T.mt}}>{ftype?`${ftype.icon} ${ftype.label}`:e.fuelType}</span>
-                          </div>
-                        </div>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                          <div>
-                            <span style={{fontSize:15,fontWeight:"bold"}}>{fmt(e.liters,2)} L</span>
-                            <span style={{fontSize:12,marginLeft:8,color:T.mt}}>{fmt(e.ppl,3)} €/L</span>
-                            {e.odo&&<div style={{fontSize:11,color:T.mt,marginTop:2}}>ODO: {e.odo} km</div>}
-                            {e.notes&&<div style={{fontSize:11,color:T.mt,marginTop:2}}>📝 {e.notes}</div>}
-                          </div>
-                          <div style={{display:"flex",alignItems:"center",gap:6}}>
-                            <span style={{fontSize:16,fontWeight:"bold",color:"#ef4444"}}>{fmt(e.total)}€</span>
-                            <button onClick={()=>setEditFuelE({...e})} style={{border:"none",background:T.br,color:T.mt,cursor:"pointer",fontSize:12,padding:"4px 7px",borderRadius:6}}>✏️</button>
-                            <button onClick={()=>handleDelFuel(e.id)} style={{border:"none",background:"none",color:T.mt,cursor:"pointer",fontSize:16}}>✕</button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {sortedMe.map((e,i)=><FuelEntryRow key={e.id} e={e} i={i} total={sortedMe.length} allFuel={allFuel} T={T} col={col} swipeId={swipeId} setSwipeId={setSwipeId} swipeStartX={swipeStartX} onEdit={setEditFuelE} onDel={handleDelFuel}/>)}
                 </MonthGroup>
               );
-            })}
+            }):(
+              <div style={{borderRadius:14,overflow:"hidden",border:`1px solid ${T.br}`}}>
+                {sortedFuel.map((e,i)=><FuelEntryRow key={e.id} e={e} i={i} total={sortedFuel.length} allFuel={allFuel} T={T} col={col} swipeId={swipeId} setSwipeId={setSwipeId} swipeStartX={swipeStartX} onEdit={setEditFuelE} onDel={handleDelFuel}/>)}
+              </div>
+            )}
           </div>
         )}
       </main>
