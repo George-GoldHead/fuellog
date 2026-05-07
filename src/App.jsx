@@ -15,11 +15,13 @@ const FTYPES = [
   {id:"diesel_plus",label:"Diesel Plus",icon:"🟠"},{id:"lpg",label:"Υγραέριο (LPG)",icon:"🟣"},
   {id:"cng",label:"Φυσικό Αέριο",icon:"⚪"},
 ];
-const EXPENSE_CATS = [
+const DEFAULT_EXPENSE_CATS = [
   {id:"service",label:"Service",icon:"🔧"},{id:"oil",label:"Λάδια/Φίλτρα",icon:"🛢️"},
   {id:"tyres",label:"Ελαστικά",icon:"⚫"},{id:"parking",label:"Parking",icon:"🅿️"},
   {id:"tolls",label:"Διόδια",icon:"🛣️"},{id:"custom",label:"Άλλο",icon:"💸"},
 ];
+const CAT_ICONS = ["💸","🏷️","🔩","🚿","🅿️","🛞","🪛","🧰","🚘","⚙️","🧹","🪟","🔋","💡","📦"];
+
 const MONTHS_FULL=["Ιανουάριος","Φεβρουάριος","Μάρτιος","Απρίλιος","Μάιος","Ιούνιος","Ιούλιος","Αύγουστος","Σεπτέμβριος","Οκτώβριος","Νοέμβριος","Δεκέμβριος"];
 const MONTHS_SHORT=["Ιαν","Φεβ","Μαρ","Απρ","Μαΐ","Ιουν","Ιουλ","Αυγ","Σεπ","Οκτ","Νοε","Δεκ"];
 
@@ -263,6 +265,11 @@ export default function FuelLog(){
   const [vid,setVid]=useState("v1");
   const [entries,setEntries]=useState({});
   const [expenses,setExpenses]=useState({});
+  const [customCats,setCustomCats]=useState([]);
+  const [showManageCats,setShowManageCats]=useState(false);
+  const [newCatLabel,setNewCatLabel]=useState("");
+  const [newCatIcon,setNewCatIcon]=useState("💸");
+  const [expCatFilter,setExpCatFilter]=useState("all");
 
   const [tab,setTab]=useState("home");
   const [fY,setFY]=useState(String(new Date().getFullYear()));
@@ -293,11 +300,14 @@ export default function FuelLog(){
   const av=vehicles.find(v=>v.id===vid)||vehicles[0];
   const col=av.color;
 
+  // allExpenseCats = default + custom
+  const allExpCats = useMemo(()=>[...DEFAULT_EXPENSE_CATS,...customCats],[customCats]);
+
   // Persist
   useEffect(()=>{
-    try{const s=localStorage.getItem("fuellog_data");if(s){const d=JSON.parse(s);if(d.vehicles)setVehicles(d.vehicles);if(d.entries)setEntries(d.entries);if(d.expenses)setExpenses(d.expenses);if(d.vid)setVid(d.vid);}}catch(e){}
+    try{const s=localStorage.getItem("fuellog_data");if(s){const d=JSON.parse(s);if(d.vehicles)setVehicles(d.vehicles);if(d.entries)setEntries(d.entries);if(d.expenses)setExpenses(d.expenses);if(d.vid)setVid(d.vid);if(d.customCats)setCustomCats(d.customCats);}}catch(e){}
   },[]);
-  useEffect(()=>{localStorage.setItem("fuellog_data",JSON.stringify({vehicles,entries,expenses,vid}));},[vehicles,entries,expenses,vid]);
+  useEffect(()=>{localStorage.setItem("fuellog_data",JSON.stringify({vehicles,entries,expenses,vid,customCats}));},[vehicles,entries,expenses,vid,customCats]);
   useEffect(()=>{setFuelForm(emptyFuel(av.fuelType||"diesel"));},[vid]);
 
   // Derived
@@ -441,16 +451,24 @@ export default function FuelLog(){
   // CRUD Expenses
   const handleAddExp=()=>{
     if(!expForm.amount)return;
-    const cat=EXPENSE_CATS.find(c=>c.id===expForm.category);
-    setExpenses(p=>({...p,[vid]:[...(p[vid]||[]),{...expForm,id:uid(),amount:parseFloat(expForm.amount),icon:cat && cat.icon||"💸",label:expForm.label||cat && cat.label||"Άλλο"}]}));
+    const cat=allExpCats.find(c=>c.id===expForm.category);
+    setExpenses(p=>({...p,[vid]:[...(p[vid]||[]),{...expForm,id:uid(),amount:parseFloat(expForm.amount),icon:cat&&cat.icon||"💸",label:expForm.label||cat&&cat.label||"Άλλο"}]}));
     setExpForm(emptyExp());
+    setTab("expenses");
   };
   const handleDelExp=id=>setExpenses(p=>({...p,[vid]:(p[vid]||[]).filter(e=>e.id!==id)}));
   const handleSaveEditExp=()=>{
-    const cat=EXPENSE_CATS.find(c=>c.id===editExpE.category);
-    setExpenses(p=>({...p,[vid]:(p[vid]||[]).map(e=>e.id===editExpE.id?{...editExpE,amount:parseFloat(editExpE.amount),icon:cat && cat.icon||editExpE.icon}:e)}));
+    const cat=allExpCats.find(c=>c.id===editExpE.category);
+    setExpenses(p=>({...p,[vid]:(p[vid]||[]).map(e=>e.id===editExpE.id?{...editExpE,amount:parseFloat(editExpE.amount),icon:cat&&cat.icon||editExpE.icon}:e)}));
     setEditExpE(null);
   };
+  const handleAddCustomCat=()=>{
+    if(!newCatLabel.trim())return;
+    const id="cat_"+uid();
+    setCustomCats(p=>[...p,{id,label:newCatLabel.trim(),icon:newCatIcon}]);
+    setNewCatLabel("");setNewCatIcon("💸");
+  };
+  const handleDelCustomCat=id=>setCustomCats(p=>p.filter(c=>c.id!==id));
 
   // CRUD Vehicles
   const handleAddVehicle=()=>{
@@ -473,24 +491,27 @@ export default function FuelLog(){
 
   // FIX #2: Import — ενημέρωση vid μετά το import
   const handleImport=()=>{
+    const text=importText.trim();
+    if(!text){setImportMsg("❌ Σφάλμα: Δεν έχεις επιλέξει αρχείο ή δεν έχεις επικολλήσει JSON.");return;}
     try{
-      const d=JSON.parse(importText);
+      const d=JSON.parse(text);
+      if(!d.vehicles&&!d.entries&&!d.expenses){setImportMsg("❌ Σφάλμα: Το αρχείο δεν έχει έγκυρη μορφή FuelLog.");return;}
       if(d.vehicles)setVehicles(d.vehicles);
       if(d.entries)setEntries(d.entries);
       if(d.expenses)setExpenses(d.expenses);
-      // FIX: set valid vid
+      if(d.customCats)setCustomCats(d.customCats);
       if(d.vehicles&&d.vehicles.length>0){
         const savedVid=d.vid||(d.vehicles[0].id);
         const validVid=d.vehicles.find(v=>v.id===savedVid)?savedVid:d.vehicles[0].id;
         setVid(validVid);
       }
       setImportMsg("✅ Εισαγωγή επιτυχής!");setImportText("");
-    }catch(e){setImportMsg("❌ Σφάλμα: Μη έγκυρο JSON.");}
+    }catch(e){setImportMsg("❌ Σφάλμα: Μη έγκυρο JSON. Βεβαιώσου ότι επιλέγεις αρχείο .json που εξήγαγες από το FuelLog.");  }
   };
 
   // #7: PDF Export
   const exportPDF=()=>{
-    {
+    try{
       const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
       const pageW=210;
       doc.setFont("helvetica","bold");
@@ -541,20 +562,22 @@ export default function FuelLog(){
           const bg=i%2===0?[248,248,252]:[255,255,255];
           doc.setFillColor(...bg);doc.rect(14,y-3,pageW-28,7,"F");
           doc.text(formatDate(e.date),16,y+2);
-          doc.text((EXPENSE_CATS.find(c=>c.id===e.category)||{label:e.category}).label,50,y+2);
+          doc.text((allExpCats.find(c=>c.id===e.category)||{label:e.category}).label,50,y+2);
           doc.text((e.label||"").slice(0,30),90,y+2);
           doc.text(fmt(e.amount)+"€",160,y+2);
           y+=7;
         });
       }
       doc.save(`fuellog_${av.name}_${today()}.pdf`);
+    }catch(err){
+      window.alert("❌ Σφάλμα κατά την εξαγωγή PDF: " + err.message);
     }
   };
 
   // Export/Import
   const exportJSON=()=>{
     const a=document.createElement("a");
-    a.href="data:application/json;charset=utf-8,"+encodeURIComponent(JSON.stringify({vehicles,entries,expenses},null,2));
+    a.href="data:application/json;charset=utf-8,"+encodeURIComponent(JSON.stringify({vehicles,entries,expenses,customCats},null,2));
     a.download=`fuellog_${today()}.json`;a.click();
   };
   const exportCSV=()=>{
@@ -725,30 +748,46 @@ export default function FuelLog(){
         {tab==="expenses"&&(
           <div>
             <div style={{...CS(),marginBottom:16}}>
-              <h3 style={{marginTop:0,fontSize:15}}>➕ Νέο Έξοδο</h3>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <h3 style={{margin:0,fontSize:15}}>➕ Νέο Έξοδο</h3>
+                <button onClick={()=>setShowManageCats(true)} style={{border:`1px solid ${T.br}`,background:T.br,color:T.mt,borderRadius:8,padding:"5px 10px",fontSize:11,cursor:"pointer"}}>⚙️ Κατηγορίες</button>
+              </div>
               <input type="date" value={expForm.date} onChange={e=>setExpForm({...expForm,date:e.target.value})} style={IS}/>
               <select value={expForm.category} onChange={e=>setExpForm({...expForm,category:e.target.value})} style={IS}>
-                {EXPENSE_CATS.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
+                {allExpCats.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
               </select>
               <input type="text" placeholder="Τοποθεσία / Περιγραφή" value={expForm.label} onChange={e=>setExpForm({...expForm,label:e.target.value})} style={IS}/>
               <input type="number" step="0.01" placeholder="Ποσό €" value={expForm.amount} onChange={e=>setExpForm({...expForm,amount:e.target.value})} style={IS}/>
               <button onClick={handleAddExp} style={{width:"100%",padding:12,background:col,color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:15,cursor:"pointer"}}>ΑΠΟΘΗΚΕΥΣΗ</button>
             </div>
+            {/* Φίλτρο κατηγορίας */}
+            {allExp.length>0&&(
+              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+                <button onClick={()=>setExpCatFilter("all")} style={{padding:"5px 10px",borderRadius:16,border:"none",cursor:"pointer",fontSize:11,fontWeight:"bold",background:expCatFilter==="all"?col:T.br,color:expCatFilter==="all"?"#fff":T.mt}}>Όλα</button>
+                {allExpCats.filter(c=>(expenses[vid]||[]).some(e=>e.category===c.id)).map(c=>(
+                  <button key={c.id} onClick={()=>setExpCatFilter(expCatFilter===c.id?"all":c.id)} style={{padding:"5px 10px",borderRadius:16,border:"none",cursor:"pointer",fontSize:11,fontWeight:"bold",background:expCatFilter===c.id?col:T.br,color:expCatFilter===c.id?"#fff":T.mt}}>{c.icon} {c.label}</button>
+                ))}
+              </div>
+            )}
             {expByMonth.length===0&&<div style={{textAlign:"center",color:T.mt,padding:30}}>Δεν υπάρχουν έξοδα ακόμα.</div>}
-            {expByMonth.map(({key,label,entries:me,total,byCategory})=>(
-              <MonthGroup key={key} monthKey={key} label={label} badge={`${me.length} εγγρ.`} total={`-${fmt(total)}€`} isOpen={!!openExpM[key]} onToggle={()=>setOpenExpM(p=>({...p,[key]:!p[key]}))} T={T}>
+            {expByMonth.map(({key,label,entries:me,total,byCategory})=>{
+              const filtMe=expCatFilter==="all"?me:me.filter(e=>e.category===expCatFilter);
+              if(!filtMe.length)return null;
+              const filtTotal=filtMe.reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
+              return(
+              <MonthGroup key={key} monthKey={key} label={label} badge={`${filtMe.length} εγγρ.`} total={`-${fmt(filtTotal)}€`} isOpen={!!openExpM[key]} onToggle={()=>setOpenExpM(p=>({...p,[key]:!p[key]}))} T={T}>
                 <div style={{display:"flex",flexWrap:"wrap",gap:6,padding:"8px 12px",background:T.bg,borderBottom:`1px solid ${T.ft}`}}>
-                  {Object.entries(byCategory).map(([catId,amt])=>{const cat=EXPENSE_CATS.find(c=>c.id===catId);return(
+                  {Object.entries(byCategory).filter(([catId])=>expCatFilter==="all"||catId===expCatFilter).map(([catId,amt])=>{const cat=allExpCats.find(c=>c.id===catId);return(
                     <div key={catId} style={{background:T.sf,borderRadius:8,padding:"4px 8px",fontSize:11,display:"flex",alignItems:"center",gap:4}}>
-                      <span>{cat && cat.icon||"💸"}</span><span style={{color:T.mt}}>{cat && cat.label||catId}</span><span style={{fontWeight:"bold",color:"#e07b54"}}>{fmt(amt)}€</span>
+                      <span>{cat&&cat.icon||"💸"}</span><span style={{color:T.mt}}>{cat&&cat.label||catId}</span><span style={{fontWeight:"bold",color:"#e07b54"}}>{fmt(amt)}€</span>
                     </div>
                   );})}
                 </div>
-                {me.slice().reverse().map((e,i)=>{const cat=EXPENSE_CATS.find(c=>c.id===e.category);return(
-                  <div key={e.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",background:i%2===0?T.sf:T.bg,borderBottom:i<me.length-1?`1px solid ${T.ft}`:"none"}}>
+                {filtMe.slice().reverse().map((e,i)=>{const cat=allExpCats.find(c=>c.id===e.category);return(
+                  <div key={e.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",background:i%2===0?T.sf:T.bg,borderBottom:i<filtMe.length-1?`1px solid ${T.ft}`:"none"}}>
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <span style={{fontSize:20}}>{cat && cat.icon||e.icon||"💸"}</span>
-                      <div><div style={{fontWeight:"bold",fontSize:13}}>{e.label||cat && cat.label}</div><div style={{fontSize:11,color:T.mt}}>{formatDate(e.date)}</div></div>
+                      <span style={{fontSize:20}}>{cat&&cat.icon||e.icon||"💸"}</span>
+                      <div><div style={{fontWeight:"bold",fontSize:13}}>{e.label||cat&&cat.label}</div><div style={{fontSize:11,color:T.mt}}>{formatDate(e.date)}</div></div>
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:5}}>
                       <span style={{fontWeight:"bold",color:"#e11d48",fontSize:14}}>-{fmt(e.amount)}€</span>
@@ -758,7 +797,7 @@ export default function FuelLog(){
                   </div>
                 );})}
               </MonthGroup>
-            ))}
+            );})}
           </div>
         )}
 
@@ -821,7 +860,7 @@ export default function FuelLog(){
               <div style={CS()}>
                 <div style={{fontSize:12,fontWeight:"bold",marginBottom:4,color:T.tx}}>🗂️ Κατανομή Εξόδων</div>
                 <div style={{fontSize:10,color:T.mt,marginBottom:10}}>Σύνολο οχήματος · {(expenses[vid]||[]).length} εγγραφές · tap για ανάλυση</div>
-                {EXPENSE_CATS.map(cat=>{
+                {allExpCats.map(cat=>{
                   const catEntries=(expenses[vid]||[]).filter(e=>(e.category||"custom")===cat.id).sort((a,b)=>new Date(b.date)-new Date(a.date));
                   const tot=catEntries.reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
                   if(!tot)return null;
@@ -1007,12 +1046,42 @@ export default function FuelLog(){
         )}
       </Modal>
 
+      {/* MODAL: MANAGE EXPENSE CATEGORIES */}
+      <Modal open={showManageCats} onClose={()=>setShowManageCats(false)} title="⚙️ Διαχείριση Κατηγοριών" T={T}>
+        <div style={{fontSize:11,color:T.mt,marginBottom:8,fontWeight:"bold"}}>ΠΡΟΣΘΗΚΗ ΝΕΑΣ ΚΑΤΗΓΟΡΙΑΣ</div>
+        <div style={{display:"flex",gap:8,marginBottom:10}}>
+          <input type="text" placeholder="Όνομα κατηγορίας…" value={newCatLabel} onChange={e=>setNewCatLabel(e.target.value)} style={{...IS,marginBottom:0,flex:1}}/>
+          <select value={newCatIcon} onChange={e=>setNewCatIcon(e.target.value)} style={{...IS,marginBottom:0,width:70,textAlign:"center",fontSize:18}}>
+            {CAT_ICONS.map(ic=><option key={ic} value={ic}>{ic}</option>)}
+          </select>
+        </div>
+        <button onClick={handleAddCustomCat} style={{width:"100%",padding:11,background:col,color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:14,cursor:"pointer",marginBottom:16}}>+ Προσθήκη</button>
+        <div style={{fontSize:11,color:T.mt,marginBottom:8,fontWeight:"bold"}}>ΠΡΟΕΠΙΛΕΓΜΕΝΕΣ</div>
+        {DEFAULT_EXPENSE_CATS.map(c=>(
+          <div key={c.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",background:T.bg,borderRadius:8,marginBottom:6}}>
+            <span style={{fontSize:18}}>{c.icon}</span><span style={{fontSize:13,flex:1}}>{c.label}</span>
+            <span style={{fontSize:10,color:T.mt,background:T.br,padding:"2px 7px",borderRadius:8}}>προεπιλογή</span>
+          </div>
+        ))}
+        {customCats.length>0&&(
+          <>
+            <div style={{fontSize:11,color:T.mt,marginBottom:8,marginTop:12,fontWeight:"bold"}}>ΔΙΚΕΣ ΜΟΥ</div>
+            {customCats.map(c=>(
+              <div key={c.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",background:T.bg,borderRadius:8,marginBottom:6}}>
+                <span style={{fontSize:18}}>{c.icon}</span><span style={{fontSize:13,flex:1}}>{c.label}</span>
+                <button onClick={()=>handleDelCustomCat(c.id)} style={{border:"none",background:"none",color:"#e11d48",cursor:"pointer",fontSize:16,padding:2}}>✕</button>
+              </div>
+            ))}
+          </>
+        )}
+      </Modal>
+
       {/* MODAL: EDIT EXPENSE */}
       <Modal open={!!editExpE} onClose={()=>setEditExpE(null)} title="✏️ Επεξεργασία Εξόδου" T={T}>
         {editExpE&&(
           <div>
             <input type="date" value={editExpE.date} onChange={e=>setEditExpE({...editExpE,date:e.target.value})} style={IS}/>
-            <select value={editExpE.category} onChange={e=>setEditExpE({...editExpE,category:e.target.value})} style={IS}>{EXPENSE_CATS.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}</select>
+            <select value={editExpE.category} onChange={e=>setEditExpE({...editExpE,category:e.target.value})} style={IS}>{allExpCats.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}</select>
             <input type="text" placeholder="Τοποθεσία / Περιγραφή" value={editExpE.label||""} onChange={e=>setEditExpE({...editExpE,label:e.target.value})} style={IS}/>
             <input type="number" step="0.01" placeholder="Ποσό €" value={editExpE.amount} onChange={e=>setEditExpE({...editExpE,amount:e.target.value})} style={IS}/>
             <button onClick={handleSaveEditExp} style={{width:"100%",padding:14,background:col,color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:15,cursor:"pointer"}}>ΑΠΟΘΗΚΕΥΣΗ</button>
