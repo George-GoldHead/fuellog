@@ -21,7 +21,7 @@ const DEFAULT_EXPENSE_CATS = [
   {id:"tolls",label:"Διόδια",icon:"🛣️"},{id:"custom",label:"Άλλο",icon:"💸"},
 ];
 const CAT_ICONS = [
-  {ic:"💸",label:"Γενικό"},{ic:"🏷️",label:"Αγορά"},{ic:"🔩",label:"Επισκευή"},{ic:"🚿",label:"Πλύσιμο"},{ic:"🧹",label:"Καθαρισμός"},ic:"🪛",label:"Εργαλεία"},
+  {ic:"💸",label:"Γενικό"},{ic:"🏷️",label:"Αγορά"},{ic:"🔩",label:"Επισκευή"},{ic:"🚿",label:"Πλύσιμο"},{ic:"🧹",label:"Καθαρισμός"},{ic:"🪛",label:"Εργαλεία"},
   {ic:"🚘",label:"Αυτοκίνητο"},{ic:"⚙️",label:"Μηχανικός"},{ic:"🪟",label:"Τζάμια"},
   {ic:"🔋",label:"Μπαταρία"},{ic:"💡",label:"Ηλεκτρικά"},{ic:"📦",label:"Ανταλλακτικά"},
 ];
