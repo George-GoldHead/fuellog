@@ -20,7 +20,11 @@ const DEFAULT_EXPENSE_CATS = [
   {id:"tyres",label:"Ελαστικά",icon:"⚫"},{id:"parking",label:"Parking",icon:"🅿️"},
   {id:"tolls",label:"Διόδια",icon:"🛣️"},{id:"custom",label:"Άλλο",icon:"💸"},
 ];
-const CAT_ICONS = ["💸","🏷️","🔩","🚿","🅿️","🛞","🪛","🧰","🚘","⚙️","🧹","🪟","🔋","💡","📦"];
+const CAT_ICONS = [
+  {ic:"💸",label:"Γενικό"},{ic:"🏷️",label:"Αγορά"},{ic:"🔩",label:"Επισκευή"},{ic:"🚿",label:"Πλύσιμο"},{ic:"🧹",label:"Καθαρισμός"},ic:"🪛",label:"Εργαλεία"},
+  {ic:"🚘",label:"Αυτοκίνητο"},{ic:"⚙️",label:"Μηχανικός"},{ic:"🪟",label:"Τζάμια"},
+  {ic:"🔋",label:"Μπαταρία"},{ic:"💡",label:"Ηλεκτρικά"},{ic:"📦",label:"Ανταλλακτικά"},
+];
 
 const MONTHS_FULL=["Ιανουάριος","Φεβρουάριος","Μάρτιος","Απρίλιος","Μάιος","Ιούνιος","Ιούλιος","Αύγουστος","Σεπτέμβριος","Οκτώβριος","Νοέμβριος","Δεκέμβριος"];
 const MONTHS_SHORT=["Ιαν","Φεβ","Μαρ","Απρ","Μαΐ","Ιουν","Ιουλ","Αυγ","Σεπ","Οκτ","Νοε","Δεκ"];
@@ -268,7 +272,7 @@ export default function FuelLog(){
   const [customCats,setCustomCats]=useState([]);
   const [showManageCats,setShowManageCats]=useState(false);
   const [newCatLabel,setNewCatLabel]=useState("");
-  const [newCatIcon,setNewCatIcon]=useState("💸");
+  const [newCatIcon,setNewCatIcon]=useState(CAT_ICONS[0].ic);
   const [expCatFilter,setExpCatFilter]=useState("all");
 
   const [tab,setTab]=useState("home");
@@ -439,7 +443,7 @@ export default function FuelLog(){
     if(!total)return;
     const liters=ppl>0?+(total/ppl).toFixed(3):0;
     setEntries(p=>({...p,[vid]:[...(p[vid]||[]),{...fuelForm,id:uid(),total,ppl:ppl||0,liters,odo:fuelForm.odo?parseFloat(fuelForm.odo):null}]}));
-    setFuelForm(emptyFuel(av.fuelType||"diesel"));setTab("history");
+    setFuelForm(emptyFuel(av.fuelType||"diesel"));setTab("home");
   };
   const handleDelFuel=id=>setEntries(p=>({...p,[vid]:(p[vid]||[]).filter(e=>e.id!==id)}));
   const handleSaveEditFuel=()=>{
@@ -1049,11 +1053,20 @@ export default function FuelLog(){
       {/* MODAL: MANAGE EXPENSE CATEGORIES */}
       <Modal open={showManageCats} onClose={()=>setShowManageCats(false)} title="⚙️ Διαχείριση Κατηγοριών" T={T}>
         <div style={{fontSize:11,color:T.mt,marginBottom:8,fontWeight:"bold"}}>ΠΡΟΣΘΗΚΗ ΝΕΑΣ ΚΑΤΗΓΟΡΙΑΣ</div>
-        <div style={{display:"flex",gap:8,marginBottom:10}}>
-          <input type="text" placeholder="Όνομα κατηγορίας…" value={newCatLabel} onChange={e=>setNewCatLabel(e.target.value)} style={{...IS,marginBottom:0,flex:1}}/>
-          <select value={newCatIcon} onChange={e=>setNewCatIcon(e.target.value)} style={{...IS,marginBottom:0,width:70,textAlign:"center",fontSize:18}}>
-            {CAT_ICONS.map(ic=><option key={ic} value={ic}>{ic}</option>)}
-          </select>
+        <input type="text" placeholder="Όνομα κατηγορίας…" value={newCatLabel} onChange={e=>setNewCatLabel(e.target.value)} style={IS}/>
+        <div style={{fontSize:11,color:T.mt,marginBottom:8,fontWeight:"bold"}}>ΕΠΙΛΟΓΗ ΕΙΚΟΝΙΔΙΟΥ</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:14}}>
+          {CAT_ICONS.map(({ic,label})=>(
+            <div key={ic} onClick={()=>setNewCatIcon(ic)} style={{
+              display:"flex",flexDirection:"column",alignItems:"center",gap:3,
+              padding:"8px 4px",borderRadius:10,cursor:"pointer",
+              background:newCatIcon===ic?col:T.bg,
+              border:`2px solid ${newCatIcon===ic?col:T.br}`,
+            }}>
+              <span style={{fontSize:26}}>{ic}</span>
+              <span style={{fontSize:9,color:newCatIcon===ic?"#fff":T.mt,textAlign:"center",lineHeight:1.2}}>{label}</span>
+            </div>
+          ))}
         </div>
         <button onClick={handleAddCustomCat} style={{width:"100%",padding:11,background:col,color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:14,cursor:"pointer",marginBottom:16}}>+ Προσθήκη</button>
         <div style={{fontSize:11,color:T.mt,marginBottom:8,fontWeight:"bold"}}>ΠΡΟΕΠΙΛΕΓΜΕΝΕΣ</div>
