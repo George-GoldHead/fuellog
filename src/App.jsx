@@ -17,13 +17,14 @@ const FTYPES = [
 ];
 const DEFAULT_EXPENSE_CATS = [
   {id:"service",label:"Service",icon:"🔧"},{id:"oil",label:"Λάδια/Φίλτρα",icon:"🛢️"},
-  {id:"tyres",label:"Ελαστικά",icon:"⚫"},{id:"parking",label:"Parking",icon:"🅿️"},
-  {id:"tolls",label:"Διόδια",icon:"🛣️"},{id:"custom",label:"Άλλο",icon:"💸"},
+  {id:"tyres",label:"Ελαστικά",icon:"⚫"},{id:"parking",label:"Στάθμευση",icon:"🅿️"},
+  {id:"tolls",label:"Διόδια",icon:"🛣️"},{id:"🚿",label:"Πλύσιμο"},{id:"🧹",label:"Καθαρισμός"},{id:"custom",label:"Άλλο",icon:"💸"},
 ];
 const CAT_ICONS = [
-  {ic:"💸",label:"Γενικό"},{ic:"🏷️",label:"Αγορά"},{ic:"🔩",label:"Επισκευή"},{ic:"🚿",label:"Πλύσιμο"},{ic:"🧹",label:"Καθαρισμός"},{ic:"🪛",label:"Εργαλεία"},
-  {ic:"🚘",label:"Αυτοκίνητο"},{ic:"⚙️",label:"Μηχανικός"},{ic:"🪟",label:"Τζάμια"},
-  {ic:"🔋",label:"Μπαταρία"},{ic:"💡",label:"Ηλεκτρικά"},{ic:"📦",label:"Ανταλλακτικά"},
+  {ic:"💸",label:"Γενικό"},{ic:"🔩",label:"Επισκευή"},{ic:"🪛",label:"Εργαλεία"},
+  {ic:"⚙️",label:"Μηχανικός"},{ic:"🪟",label:"Τζάμια"}, {ic:"🔋",label:"Μπαταρία"},
+  {ic:"💡",label:"Ηλεκτρικά"},{ic:"📦",label:"Ανταλλακτικά"}, {ic:"🚘",label:"Τέλη Κυκλοφορίας"}, {ic:"💨",label:"Κάρτα Καυσαερίων"},
+  {ic:"⚙️",label:"ΚΤΕΟ"},
 ];
 
 const MONTHS_FULL=["Ιανουάριος","Φεβρουάριος","Μάρτιος","Απρίλιος","Μάιος","Ιούνιος","Ιούλιος","Αύγουστος","Σεπτέμβριος","Οκτώβριος","Νοέμβριος","Δεκέμβριος"];
