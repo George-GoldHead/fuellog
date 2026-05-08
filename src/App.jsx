@@ -18,7 +18,7 @@ const FTYPES = [
 const DEFAULT_EXPENSE_CATS = [
   {id:"service",label:"Service",icon:"🔧"},{id:"oil",label:"Λάδια/Φίλτρα",icon:"🛢️"},
   {id:"tyres",label:"Ελαστικά",icon:"⚫"},{id:"parking",label:"Στάθμευση",icon:"🅿️"},
-  {id:"tolls",label:"Διόδια",icon:"🛣️"},{id:"🚿",label:"Πλύσιμο"},{id:"🧹",label:"Καθαρισμός"},{id:"custom",label:"Άλλο",icon:"💸"},
+  {id:"tolls",label:"Διόδια",icon:"🛣️"},{id:"car wash",label:"Πλύσιμο",icon:"🚿"},{id:"car cleaning",label:"Καθαρισμός", icon:"🧹"},{id:"custom",label:"Άλλο",icon:"💸"},
 ];
 const CAT_ICONS = [
   {ic:"💸",label:"Γενικό"},{ic:"🔩",label:"Επισκευή"},{ic:"🪛",label:"Εργαλεία"},
