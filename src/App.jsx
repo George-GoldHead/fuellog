@@ -34,12 +34,6 @@ const EXP_GROUPS = [
     cats:[{id:"custom",label:"Άλλο",icon:"💸"}]},
 ];
 const DEFAULT_EXPENSE_CATS = EXP_GROUPS.flatMap(g=>g.cats);
-const CAT_ICONS = [
-  {ic:"💸",label:"Γενικό"},{ic:"🔩",label:"Επισκευή"},{ic:"🪛",label:"Εργαλεία"},
-  {ic:"⚙️",label:"Μηχανικός"},{ic:"🪟",label:"Τζάμια"},{ic:"🔋",label:"Μπαταρία"},
-  {ic:"💡",label:"Ηλεκτρικά"},{ic:"📦",label:"Ανταλλακτικά"},{ic:"🚘",label:"Τέλη"},
-  {ic:"💨",label:"Καυσαέρια"},{ic:"🛡️",label:"Ασφάλεια"},{ic:"🚔",label:"Πρόστιμο"},
-];
 const MONTHS_FULL=["Ιανουάριος","Φεβρουάριος","Μάρτιος","Απρίλιος","Μάιος","Ιούνιος","Ιούλιος","Αύγουστος","Σεπτέμβριος","Οκτώβριος","Νοέμβριος","Δεκέμβριος"];
 const MONTHS_SHORT=["Ιαν","Φεβ","Μαρ","Απρ","Μαΐ","Ιουν","Ιουλ","Αυγ","Σεπ","Οκτ","Νοε","Δεκ"];
 
@@ -205,7 +199,7 @@ export default function FuelLog(){
   const [customCats,setCustomCats]=useState([]);
   const [showManageCats,setShowManageCats]=useState(false);
   const [newCatLabel,setNewCatLabel]=useState("");
-  const [newCatIcon,setNewCatIcon]=useState(CAT_ICONS[0].ic);
+  const [newCatIcon,setNewCatIcon]=useState('💸');
   const [expCatFilter,setExpCatFilter]=useState("all");
   const [quickExpCat,setQuickExpCat]=useState(null);
   const [quickExpAmt,setQuickExpAmt]=useState("");
@@ -222,6 +216,11 @@ export default function FuelLog(){
   const [histSort,setHistSort]=useState("date_desc");
   const [swipeId,setSwipeId]=useState(null);
   const swipeStartX=useRef(null);
+  // ── PWA ──
+  const [installPrompt,setInstallPrompt]=useState(null);
+  const [showInstallBanner,setShowInstallBanner]=useState(false);
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+  const isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
   const [fuelForm,setFuelForm]=useState(emptyFuel("diesel"));
   const [expForm,setExpForm]=useState(emptyExp());
   const [showAddV,setShowAddV]=useState(false);
@@ -243,6 +242,21 @@ export default function FuelLog(){
 
   useEffect(()=>{
     try{const s=localStorage.getItem("fuellog_data");if(s){const d=JSON.parse(s);if(d.vehicles)setVehicles(d.vehicles);if(d.entries)setEntries(d.entries);if(d.expenses)setExpenses(d.expenses);if(d.vid)setVid(d.vid);if(d.customCats)setCustomCats(d.customCats);}}catch(e){}
+  },[]);
+
+  // ── Service Worker Registration ──
+  useEffect(()=>{
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(()=>console.log('SW registered'))
+        .catch(e=>console.log('SW error:',e));
+    }
+    // Install prompt (Android/Chrome)
+    const handler=e=>{e.preventDefault();setInstallPrompt(e);if(!isStandalone)setShowInstallBanner(true);};
+    window.addEventListener('beforeinstallprompt',handler);
+    // iOS: εμφάνισε banner αν δεν είναι ήδη εγκατεστημένο
+    if(isIOS&&!isStandalone) setShowInstallBanner(true);
+    return()=>window.removeEventListener('beforeinstallprompt',handler);
   },[]);
   useEffect(()=>{localStorage.setItem("fuellog_data",JSON.stringify({vehicles,entries,expenses,vid,customCats}));},[vehicles,entries,expenses,vid,customCats]);
   useEffect(()=>{setFuelForm(emptyFuel(av.fuelType||"diesel"));},[vid]);
@@ -381,6 +395,16 @@ export default function FuelLog(){
   };
   const handleDelCustomCat=id=>setCustomCats(p=>p.filter(c=>c.id!==id));
 
+  const handleInstall=async()=>{
+    if(installPrompt){
+      installPrompt.prompt();
+      const {outcome}=await installPrompt.userChoice;
+      if(outcome==='accepted'){setShowInstallBanner(false);setInstallPrompt(null);}
+    }else if(isIOS){
+      setShowInstallBanner(false);
+    }
+  };
+
   // ── CRUD Vehicles ──
   const handleAddVehicle=()=>{const v={...newV,id:uid()};setVehicles(p=>[...p,v]);setVid(v.id);setShowAddV(false);setNewV(defV());setTab("home");};
   const handleSaveEditV=()=>{
@@ -518,6 +542,31 @@ export default function FuelLog(){
               <div style={{fontSize:30,fontWeight:"bold",color:"#eab308"}}>{fmt((entries[vid]||[]).reduce((s,x)=>s+(parseFloat(x.total)||0),0)+(expenses[vid]||[]).reduce((s,x)=>s+(parseFloat(x.amount)||0),0))}€</div>
               {av.info&&av.info.plate&&<div style={{fontSize:11,color:T.mt,marginTop:2}}>{av.info.plate}</div>}
             </div>
+            {/* ── PWA Install Banner ── */}
+            {showInstallBanner&&!isStandalone&&(
+              <div style={{
+                background:dark?"#1a1a10":"#fff8e7",
+                border:`1px solid ${col}`,borderRadius:14,
+                padding:"12px 14px",marginBottom:12,
+                display:"flex",alignItems:"center",gap:12,
+              }}>
+                <span style={{fontSize:28}}>📲</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:"bold",color:col}}>Εγκατέστησε το FuelLog!</div>
+                  {isIOS
+                    ? <div style={{fontSize:11,color:T.mt}}>Πάτα <b>Share</b> → <b>"Add to Home Screen"</b> για offline χρήση</div>
+                    : <div style={{fontSize:11,color:T.mt}}>Γρήγορη πρόσβαση &amp; χρήση χωρίς internet</div>
+                  }
+                </div>
+                {!isIOS&&(
+                  <button onClick={handleInstall} style={{padding:"7px 12px",background:col,color:"#fff",border:"none",borderRadius:8,fontWeight:"bold",fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>
+                    Εγκατάσταση
+                  </button>
+                )}
+                <button onClick={()=>setShowInstallBanner(false)} style={{border:"none",background:"none",color:T.mt,fontSize:20,cursor:"pointer",lineHeight:1,padding:4}}>✕</button>
+              </div>
+            )}
+
             {reminders.length>0&&(
               <div style={{marginBottom:14}}>
                 <div style={{fontSize:12,fontWeight:"bold",color:"#eab308",marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
@@ -895,16 +944,16 @@ export default function FuelLog(){
 
       <Modal open={showManageCats} onClose={()=>setShowManageCats(false)} title="⚙️ Διαχείριση Κατηγοριών" T={T}>
         <div style={{fontSize:11,color:T.mt,marginBottom:8,fontWeight:"bold"}}>ΠΡΟΣΘΗΚΗ ΝΕΑΣ ΚΑΤΗΓΟΡΙΑΣ</div>
-        <input type="text" placeholder="Όνομα κατηγορίας…" value={newCatLabel} onChange={e=>setNewCatLabel(e.target.value)} style={IS}/>
-        <div style={{fontSize:11,color:T.mt,marginBottom:8,fontWeight:"bold"}}>ΕΙΚΟΝΙΔΙΟ</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:14}}>
-          {CAT_ICONS.map(({ic,label})=>(
-            <div key={ic} onClick={()=>setNewCatIcon(ic)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"8px 4px",borderRadius:10,cursor:"pointer",background:newCatIcon===ic?col:T.bg,border:`2px solid ${newCatIcon===ic?col:T.br}`}}>
-              <span style={{fontSize:26}}>{ic}</span>
-              <span style={{fontSize:9,color:newCatIcon===ic?"#fff":T.mt,textAlign:"center",lineHeight:1.2}}>{label}</span>
-            </div>
-          ))}
+        <div style={{display:"flex",gap:10,marginBottom:10}}>
+          {/* ✅ Απλό emoji input αντί για grid */}
+          <input type="text" placeholder="😊" value={newCatIcon}
+            onChange={e=>setNewCatIcon(e.target.value.slice(-2)||"💸")}
+            style={{...IS,marginBottom:0,width:64,textAlign:"center",fontSize:26,padding:8}}/>
+          <input type="text" placeholder="Όνομα κατηγορίας…" value={newCatLabel}
+            onChange={e=>setNewCatLabel(e.target.value)}
+            style={{...IS,marginBottom:0,flex:1}}/>
         </div>
+        <div style={{fontSize:10,color:T.mt,marginBottom:12}}>💡 Γράψε οποιοδήποτε emoji στο πρώτο πεδίο</div>
         <button onClick={handleAddCustomCat} style={{width:"100%",padding:11,background:col,color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:14,cursor:"pointer",marginBottom:16}}>+ Προσθήκη</button>
         <div style={{fontSize:11,color:T.mt,marginBottom:8,fontWeight:"bold"}}>ΠΡΟΕΠΙΛΕΓΜΕΝΕΣ</div>
         {DEFAULT_EXPENSE_CATS.map(c=>(
