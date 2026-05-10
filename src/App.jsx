@@ -30,8 +30,6 @@ const EXP_GROUPS = [
           {id:"glass",label:"Τζάμια",icon:"🪟"}]},
   { id:"parking_tolls", label:"Parking / Διόδια", icon:"🅿️",
     cats:[{id:"parking",label:"Parking",icon:"🅿️"},{id:"tolls",label:"Διόδια",icon:"🛣️"}]},
-  { id:"other", label:"Άλλα", icon:"💸",
-    cats:[{id:"custom",label:"Άλλο",icon:"💸"}]},
 ];
 const DEFAULT_EXPENSE_CATS = EXP_GROUPS.flatMap(g=>g.cats);
 const MONTHS_FULL=["Ιανουάριος","Φεβρουάριος","Μάρτιος","Απρίλιος","Μάιος","Ιούνιος","Ιούλιος","Αύγουστος","Σεπτέμβριος","Οκτώβριος","Νοέμβριος","Δεκέμβριος"];
