@@ -945,7 +945,6 @@ export default function FuelLog(){
       <Modal open={showManageCats} onClose={()=>setShowManageCats(false)} title="⚙️ Διαχείριση Κατηγοριών" T={T}>
         <div style={{fontSize:11,color:T.mt,marginBottom:8,fontWeight:"bold"}}>ΠΡΟΣΘΗΚΗ ΝΕΑΣ ΚΑΤΗΓΟΡΙΑΣ</div>
         <div style={{display:"flex",gap:10,marginBottom:10}}>
-          {/* ✅ Απλό emoji input αντί για grid */}
           <input type="text" placeholder="😊" value={newCatIcon}
             onChange={e=>setNewCatIcon(e.target.value.slice(-2)||"💸")}
             style={{...IS,marginBottom:0,width:64,textAlign:"center",fontSize:26,padding:8}}/>
@@ -955,23 +954,21 @@ export default function FuelLog(){
         </div>
         <div style={{fontSize:10,color:T.mt,marginBottom:12}}>💡 Γράψε οποιοδήποτε emoji στο πρώτο πεδίο</div>
         <button onClick={handleAddCustomCat} style={{width:"100%",padding:11,background:col,color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:14,cursor:"pointer",marginBottom:16}}>+ Προσθήκη</button>
-        <div style={{fontSize:11,color:T.mt,marginBottom:8,fontWeight:"bold"}}>ΠΡΟΕΠΙΛΕΓΜΕΝΕΣ</div>
-        {DEFAULT_EXPENSE_CATS.map(c=>(
-          <div key={c.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",background:T.bg,borderRadius:8,marginBottom:6}}>
-            <span style={{fontSize:18}}>{c.icon}</span><span style={{fontSize:13,flex:1}}>{c.label}</span>
-            <span style={{fontSize:10,color:T.mt,background:T.br,padding:"2px 7px",borderRadius:8}}>προεπιλογή</span>
-          </div>
-        ))}
-        {customCats.length>0&&(
+        {customCats.length>0?(
           <>
-            <div style={{fontSize:11,color:T.mt,marginBottom:8,marginTop:12,fontWeight:"bold"}}>ΔΙΚΕΣ ΜΟΥ</div>
+            <div style={{fontSize:11,color:T.mt,marginBottom:8,fontWeight:"bold"}}>ΔΙΚΕΣ ΜΟΥ</div>
             {customCats.map(c=>(
               <div key={c.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",background:T.bg,borderRadius:8,marginBottom:6}}>
-                <span style={{fontSize:18}}>{c.icon}</span><span style={{fontSize:13,flex:1}}>{c.label}</span>
+                <span style={{fontSize:18}}>{c.icon}</span>
+                <span style={{fontSize:13,flex:1}}>{c.label}</span>
                 <button onClick={()=>handleDelCustomCat(c.id)} style={{border:"none",background:"none",color:"#e11d48",cursor:"pointer",fontSize:16,padding:2}}>✕</button>
               </div>
             ))}
           </>
+        ):(
+          <div style={{textAlign:"center",color:T.mt,fontSize:12,padding:"10px 0"}}>
+            Δεν έχεις προσθέσει δικές σου κατηγορίες ακόμα.
+          </div>
         )}
       </Modal>
 
