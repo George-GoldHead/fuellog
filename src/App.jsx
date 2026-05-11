@@ -16,24 +16,24 @@ const FTYPES = [
 ];
 
 const EXPENSE_CATS = [
+  {id:"tolls",label:"Διόδια",icon:"🛣️"},
+  {id:"parking",label:"Parking",icon:"🅿️"},
+  {id:"car_wash",label:"Πλύσιμο",icon:"🚿"},
+  {id:"car_clean",label:"Καθαρισμός",icon:"🧹"},
+  {id:"glass",label:"Τζάμια",icon:"🪟"},
+  {id:"kek",label:"ΚΕΚ",icon:"🚗💨"},
   {id:"kteo",label:"ΚΤΕΟ",icon:"🔍"},
-  {id:"kek",label:"ΚΕΚ",icon:"🔬"},
   {id:"road_tax",label:"Τέλη Κυκλοφορίας",icon:"🚘"},
   {id:"insurance",label:"Ασφάλεια",icon:"🛡️"},
-  {id:"fine",label:"Πρόστιμο",icon:"🚔"},
+  {id:"repair",label:"Επισκευή",icon:"🔩"},
   {id:"service",label:"Service",icon:"🔧"},
   {id:"oil",label:"Λάδια/Φίλτρα",icon:"🛢️"},
-  {id:"parts",label:"Ανταλλακτικά",icon:"📦"},
-  {id:"repair",label:"Επισκευή",icon:"🔩"},
+  {id:"parts",label:"Ανταλλακτικά",icon:"⚙️"},
   {id:"battery",label:"Μπαταρία",icon:"🔋"},
   {id:"electrical",label:"Ηλεκτρολογικά",icon:"💡"},
   {id:"tyres",label:"Ελαστικά",icon:"⚫"},
   {id:"alignment",label:"Ζυγοστάθμιση",icon:"⚖️"},
-  {id:"car_wash",label:"Πλύσιμο",icon:"🚿"},
-  {id:"car_clean",label:"Καθαρισμός",icon:"🧹"},
-  {id:"glass",label:"Τζάμια",icon:"🪟"},
-  {id:"parking",label:"Parking",icon:"🅿️"},
-  {id:"tolls",label:"Διόδια",icon:"🛣️"},
+  {id:"fine",label:"Πρόστιμο",icon:"🚔"},
   {id:"custom",label:"Άλλο",icon:"💸"},
 ];
 
