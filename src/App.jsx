@@ -1161,7 +1161,7 @@ export default function FuelLog(){
       <Modal open={showAbout} onClose={()=>setShowAbout(false)} title="ℹ️ Σχετικά" T={T}>
         <div style={{textAlign:"center",padding:"10px 0 20px"}}>
           <div style={{fontSize:48,marginBottom:8}}>⛽</div>
-          <div style={{fontSize:22,fontWeight:"bold",marginBottom:4}}>FuelLog</div>
+          <div style={{fontSize:22,fontWeight:"bold",marginBottom:4}}>DrivePulse</div>
           <div style={{fontSize:14,color:col,marginBottom:20}}>v2.8</div>
           <div style={{fontSize:13,color:T.mt,lineHeight:1.9,marginBottom:20,textAlign:"left"}}>
             ⛽ Γεμίσματα καυσίμου με αυτόματο υπολογισμό λίτρων<br/>
