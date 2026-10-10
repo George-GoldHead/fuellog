@@ -72,7 +72,7 @@ const LT={bg:"#f0e8db",sf:"#faf3e8",br:"#d4c0a8",tx:"#1a1510",mt:"#5c4e3d",ft:"#
 
 // ========== DEFAULT FACTORIES ==========
 const defInfo=()=>({brand:"",model:"",year:"",cc:"",plate:"",chassis:"",insurance:"",insuranceExp:"",kteo:"",kek:"",tiresBrand:"",tiresSize:"",tiresDate:"",tiresNext:"",serviceDate:"",serviceNextDate:"",serviceKm:"",serviceNextKm:"",serviceNotes:"",driverMain:"",driverSecond:""});
-const defV=(ov={})=>({id:uid(),name:"ΝΕΟ ΟΧΗΜΑ",icon:"🚗",color:"#f97316",category:"car",fuelType:"diesel",fuelType2:"",unitMiles:false,info:defInfo(),...ov});
+const defV=(ov={})=>({id:uid(),name:"ΝΕΟ ΟΧΗΜΑ",icon:"🚗",color:"#f97316",category:"car",fuelType:"",fuelType2:"",unitMiles:false,info:defInfo(),...ov});
 const emptyFuel=ft=>({date:today(),fuelType:ft||"diesel",ppl:"",total:"",odo:"",notes:""});
 const emptyExp=()=>({date:today(),category:"tolls",label:"",amount:"",notes:""});
 
@@ -504,6 +504,7 @@ export default function FuelLog(){
 
   // ── CRUD Vehicles ──
   const handleAddVehicle=()=>{
+    if(!newV.fuelType)return;
     const v={...newV,id:uid(),name:(newV.name||"").trim()||"ΟΧΗΜΑ 1"};
     if(setupMode){setVehicles([v]);setEntries({});setExpenses({});setNotes({});setSetupMode(false);}
     else setVehicles(p=>[...p,v]);
@@ -573,7 +574,7 @@ export default function FuelLog(){
       const cat=EXPENSE_CATS.find(c=>c.id===e.category);
       return`<tr><td>${formatDate(e.date)}</td><td>${cat?cat.label:e.category}</td><td>${e.label||""}</td><td style="color:#c00;font-weight:bold">-${fmt(e.amount)}€</td></tr>`;
     }).join("");
-    const html=`<!DOCTYPE html><html lang="el"><head><meta charset="UTF-8"><title>FuelLog - ${av.name}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#111;padding:20px}.hdr{margin-bottom:14px;border-bottom:3px solid #f97316;padding-bottom:8px}.hdr h1{font-size:19px;color:#f97316}.hdr p{font-size:10px;color:#555;margin-top:4px}.totals{background:#f5f5f5;border-radius:6px;padding:8px 14px;display:flex;gap:24px;font-size:12px;margin-bottom:14px}.totals b{color:#f97316}h2{font-size:13px;margin:16px 0 7px;color:#1e1e30;border-left:4px solid #f97316;padding-left:8px}table{width:100%;border-collapse:collapse;margin-bottom:14px}thead tr{background:#1e1e30;color:#fff}th{padding:6px 8px;text-align:left;font-size:10px}td{padding:5px 8px;border-bottom:1px solid #eee}tr:nth-child(even) td{background:#f8f8fc}.footer{margin-top:18px;font-size:9px;color:#aaa;border-top:1px solid #eee;padding-top:8px}@media print{body{padding:8px}}</style></head><body><div class="hdr"><h1>⛽ FuelLog — ${av.name}${av.info&&av.info.plate?" ("+av.info.plate+")":""}</h1><p>Εξαγωγή: ${today()} &nbsp;|&nbsp; Γεμίσματα: ${allFuel.length} &nbsp;|&nbsp; Λίτρα: ${fmt(allFuel.reduce((s,x)=>s+(parseFloat(x.liters)||0),0),1)} L &nbsp;|&nbsp; Σύνολο: ${fmt(totalFuel+totalExp)}€</p></div><div class="totals"><div>Καύσιμα: <b>${fmt(totalFuel)}€</b></div><div>Άλλα έξοδα: <b>${fmt(totalExp)}€</b></div><div>Σύνολο: <b>${fmt(totalFuel+totalExp)}€</b></div></div><h2>⛽ Γεμίσματα Καυσίμου</h2><table><thead><tr><th>Ημερομηνία</th><th>Τύπος</th><th>Λίτρα</th><th>€/L</th><th>Σύνολο</th><th>ODO (km)</th><th>L/100km</th><th>Σημειώσεις</th></tr></thead><tbody>${fuelRows}</tbody></table>${allExp.length>0?"<h2>📋 Λοιπά Έξοδα</h2><table><thead><tr><th>Ημερομηνία</th><th>Κατηγορία</th><th>Περιγραφή</th><th>Ποσό</th></tr></thead><tbody>"+expRows+"</tbody></table>":""}<div class="footer">Δημιουργήθηκε από FuelLog v2.9.1 — Ταχμαζίδης Κ. Γιώργος</div><script>window.onload=function(){window.print();};<\/script></body></html>`;
+    const html=`<!DOCTYPE html><html lang="el"><head><meta charset="UTF-8"><title>FuelLog - ${av.name}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#111;padding:20px}.hdr{margin-bottom:14px;border-bottom:3px solid #f97316;padding-bottom:8px}.hdr h1{font-size:19px;color:#f97316}.hdr p{font-size:10px;color:#555;margin-top:4px}.totals{background:#f5f5f5;border-radius:6px;padding:8px 14px;display:flex;gap:24px;font-size:12px;margin-bottom:14px}.totals b{color:#f97316}h2{font-size:13px;margin:16px 0 7px;color:#1e1e30;border-left:4px solid #f97316;padding-left:8px}table{width:100%;border-collapse:collapse;margin-bottom:14px}thead tr{background:#1e1e30;color:#fff}th{padding:6px 8px;text-align:left;font-size:10px}td{padding:5px 8px;border-bottom:1px solid #eee}tr:nth-child(even) td{background:#f8f8fc}.footer{margin-top:18px;font-size:9px;color:#aaa;border-top:1px solid #eee;padding-top:8px}@media print{body{padding:8px}}</style></head><body><div class="hdr"><h1>⛽ FuelLog — ${av.name}${av.info&&av.info.plate?" ("+av.info.plate+")":""}</h1><p>Εξαγωγή: ${today()} &nbsp;|&nbsp; Γεμίσματα: ${allFuel.length} &nbsp;|&nbsp; Λίτρα: ${fmt(allFuel.reduce((s,x)=>s+(parseFloat(x.liters)||0),0),1)} L &nbsp;|&nbsp; Σύνολο: ${fmt(totalFuel+totalExp)}€</p></div><div class="totals"><div>Καύσιμα: <b>${fmt(totalFuel)}€</b></div><div>Άλλα έξοδα: <b>${fmt(totalExp)}€</b></div><div>Σύνολο: <b>${fmt(totalFuel+totalExp)}€</b></div></div><h2>⛽ Γεμίσματα Καυσίμου</h2><table><thead><tr><th>Ημερομηνία</th><th>Τύπος</th><th>Λίτρα</th><th>€/L</th><th>Σύνολο</th><th>ODO (km)</th><th>L/100km</th><th>Σημειώσεις</th></tr></thead><tbody>${fuelRows}</tbody></table>${allExp.length>0?"<h2>📋 Λοιπά Έξοδα</h2><table><thead><tr><th>Ημερομηνία</th><th>Κατηγορία</th><th>Περιγραφή</th><th>Ποσό</th></tr></thead><tbody>"+expRows+"</tbody></table>":""}<div class="footer">Δημιουργήθηκε από FuelLog v2.9.2 — Ταχμαζίδης Κ. Γιώργος</div><script>window.onload=function(){window.print();};<\/script></body></html>`;
     const blob=new Blob([html],{type:"text/html;charset=utf-8"});
     const url=URL.createObjectURL(blob);
     const win=window.open(url,"_blank");
@@ -612,7 +613,7 @@ export default function FuelLog(){
       <header style={{padding:"10px 15px",background:T.sf,borderBottom:`1px solid ${T.br}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <span style={{fontSize:22}}>⛽</span>
-          <span style={{fontWeight:"bold",fontSize:17}}>FuelLog v2.9.1</span>
+          <span style={{fontWeight:"bold",fontSize:17}}>FuelLog v2.9.2</span>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
           <button onClick={()=>setShowVInfo(true)} style={{border:`1px solid ${T.br}`,background:T.br,color:T.mt,borderRadius:8,padding:"5px 10px",fontSize:12,cursor:"pointer"}}>🗂️ Αρχείο</button>
@@ -1063,13 +1064,13 @@ export default function FuelLog(){
         <div style={{fontSize:11,color:T.mt,marginBottom:8}}>ΚΑΤΗΓΟΡΙΑ</div>
         <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:14}}>{VCATS.map(c=><button key={c.id} onClick={()=>setNewV({...newV,category:c.id,icon:c.icon})} style={{padding:"7px 12px",borderRadius:20,border:"none",cursor:"pointer",fontSize:13,background:newV.category===c.id?col:T.br,color:newV.category===c.id?"#fff":T.mt}}>{c.icon} {c.label}</button>)}</div>
         <input type="text" placeholder="Αρ. Πινακίδας" value={newV.info.plate} onChange={e=>setNewV({...newV,info:{...newV.info,plate:e.target.value}})} style={IS}/>
-        <div style={{fontSize:11,color:T.mt,marginBottom:6}}>ΚΥΡΙΟ ΚΑΥΣΙΜΟ</div>
-        <select value={newV.fuelType} onChange={e=>setNewV({...newV,fuelType:e.target.value})} style={IS}>{FTYPES.map(f=><option key={f.id} value={f.id}>{f.icon} {f.label}</option>)}</select>
+        <div style={{fontSize:11,color:T.mt,marginBottom:6}}>ΚΥΡΙΟ ΚΑΥΣΙΜΟ (υποχρεωτικό)</div>
+        <select value={newV.fuelType} onChange={e=>setNewV({...newV,fuelType:e.target.value})} style={IS}><option value="">— Επίλεξε καύσιμο —</option>{FTYPES.map(f=><option key={f.id} value={f.id}>{f.icon} {f.label}</option>)}</select>
         <div style={{fontSize:11,color:T.mt,marginBottom:6}}>2ο ΚΑΥΣΙΜΟ</div>
         <select value={newV.fuelType2} onChange={e=>setNewV({...newV,fuelType2:e.target.value})} style={IS}><option value="">— Κανένα —</option>{FTYPES.map(f=><option key={f.id} value={f.id}>{f.icon} {f.label}</option>)}</select>
         <div style={{fontSize:11,color:T.mt,marginBottom:8}}>ΧΡΩΜΑ</div>
         <div style={{display:"flex",gap:10,marginBottom:18,flexWrap:"wrap"}}>{FUEL_COLORS.map(c=><div key={c} onClick={()=>setNewV({...newV,color:c})} style={{width:32,height:32,borderRadius:"50%",background:c,cursor:"pointer",border:newV.color===c?"3px solid #fff":"3px solid transparent",boxSizing:"border-box"}}/>)}</div>
-        <button onClick={handleAddVehicle} style={{width:"100%",padding:14,background:newV.color,color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:15,cursor:"pointer"}}>ΠΡΟΣΘΗΚΗ ΟΧΗΜΑΤΟΣ</button>
+        <button onClick={handleAddVehicle} disabled={!newV.fuelType} style={{opacity:newV.fuelType?1:0.4,width:"100%",padding:14,background:newV.color,color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:15,cursor:"pointer"}}>ΠΡΟΣΘΗΚΗ ΟΧΗΜΑΤΟΣ</button>
       </Modal>
 
       <Modal open={showVInfo} onClose={()=>setShowVInfo(false)} title={`${av.icon} ${av.name} · Αρχείο αυτοκινήτου`} T={T}>
@@ -1179,7 +1180,7 @@ export default function FuelLog(){
         <div style={{textAlign:"center",padding:"10px 0 20px"}}>
           <div style={{fontSize:48,marginBottom:8}}>⛽</div>
           <div style={{fontSize:22,fontWeight:"bold",marginBottom:4}}>FuelLog</div>
-          <div style={{fontSize:14,color:col,marginBottom:20}}>v2.9.1</div>
+          <div style={{fontSize:14,color:col,marginBottom:20}}>v2.9.2</div>
           <div style={{fontSize:13,color:T.mt,lineHeight:1.9,marginBottom:20,textAlign:"left"}}>
             ⛽ Γεμίσματα καυσίμου με αυτόματο υπολογισμό λίτρων<br/>
             🛣️ Διόδια, Πομποδέκτης, Parking, Service, Ελαστικά &amp; άλλα έξοδα<br/>
