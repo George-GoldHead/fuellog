@@ -3,5 +3,5 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/fuellog/',   // <-- GitHub repo name
+  base: '/DrivePulse/',   // <-- GitHub repo name
 })
