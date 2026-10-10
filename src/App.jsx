@@ -1,213 +1,167 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 
+// ========== CONSTANTS ==========
 const FUEL_COLORS = ["#f97316","#3b82f6","#10b981","#e11d48","#8b5cf6","#06b6d4","#eab308","#ec4899"];
-const GRAD_COLS   = ["#f97316","#3b82f6","#10b981","#f97316","#8b5cf6","#06b6d4"];
-
 const VCATS = [
-  { id:"car",   label:"ΙΧ",       icons:["🚗","🚙"] },
-  { id:"moto",  label:"Μηχανή",   icons:["🏍️"] },
-  { id:"van",   label:"Βαν/Βαρύ", icons:["🚐","🚚"] },
-  { id:"truck", label:"Φορτηγό",  icons:["🚛"] },
-  { id:"bus",   label:"Λεωφ.",    icons:["🚌"] },
+  {id:"car",label:"ΙΧ",icon:"🚗"},{id:"taxi",label:"Taxi",icon:"🚕"},
+  {id:"moto",label:"Μηχανή",icon:"🏍️"},{id:"van",label:"Βαν",icon:"🚐"},
+  {id:"ltruck",label:"Ελαφρύ Φορτηγό",icon:"🚚"},{id:"truck",label:"Βαρύ Φορτηγό",icon:"🚛"},
+  {id:"bus",label:"Λεωφορείο",icon:"🚌"},
 ];
-
 const FTYPES = [
-  { id:"unleaded95",  label:"Αμόλυβδη 95",   icon:"🟢" },
-  { id:"unleaded98",  label:"Αμόλυβδη 98",   icon:"🔵" },
-  { id:"unleaded100", label:"Αμόλυβδη 100",  icon:"🔷" },
-  { id:"diesel",      label:"Diesel",         icon:"🟡" },
-  { id:"diesel_plus", label:"Diesel Plus",    icon:"🟠" },
-  { id:"lpg",         label:"Υγραέριο (LPG)", icon:"🟣" },
-  { id:"cng",         label:"Φυσικό Αέριο",   icon:"⚪" },
-];
-
-const FT_COLORS = {
-  unleaded95:  { bg:"#10b98122", color:"#10b981" },
-  unleaded98:  { bg:"#3b82f622", color:"#3b82f6" },
-  unleaded100: { bg:"#8b5cf622", color:"#8b5cf6" },
-  diesel:      { bg:"#eab30822", color:"#eab308" },
-  diesel_plus: { bg:"#f9731622", color:"#f97316" },
-  lpg:         { bg:"#a78bfa22", color:"#a78bfa" },
-  cng:         { bg:"#71717a22", color:"#a1a1aa" },
-};
-
-const STATIONS = [
-  { id:"aegean", label:"Aegean", bg:"#0057a8", fg:"#fff" },
-  { id:"avin",   label:"Avin",   bg:"#ff6600", fg:"#fff" },
-  { id:"bp",     label:"BP",     bg:"#00a650", fg:"#fff" },
-  { id:"eko",    label:"ΕΚΟ",    bg:"#e30613", fg:"#fff" },
-  { id:"eteka",  label:"ΕΤΕΚΑ",  bg:"#1a5fa8", fg:"#fff" },
-  { id:"revoil", label:"Revoil", bg:"#0055a5", fg:"#fff" },
-  { id:"shell",  label:"Shell",  bg:"#f5d000", fg:"#000" },
-  { id:"other",  label:"Άλλο",   bg:"#555",    fg:"#fff" },
-];
-
-const RTYPES = [
-  { id:"service",   label:"Service",          icon:"🔧", hasDate:true,  hasKm:true  },
-  { id:"kteo",      label:"ΚΤΕΟ",             icon:"📋", hasDate:true,  hasKm:false },
-  { id:"emissions", label:"Κάρτα Καυσαερίων", icon:"💨", hasDate:true,  hasKm:false },
-  { id:"tyres",     label:"Αλλ. Ελαστικών",   icon:"🔄", hasDate:false, hasKm:true  },
-  { id:"insurance", label:"Ασφάλεια",         icon:"🛡️", hasDate:true,  hasKm:false },
-  { id:"custom",    label:"Άλλο",             icon:"📌", hasDate:true,  hasKm:true  },
+  {id:"unleaded95",label:"Αμόλυβδη 95",icon:"🟢"},{id:"unleaded98",label:"Αμόλυβδη 98",icon:"🔵"},
+  {id:"unleaded100",label:"Αμόλυβδη 100",icon:"🔷"},{id:"diesel",label:"Diesel",icon:"🟡"},
+  {id:"diesel_plus",label:"Diesel Plus",icon:"🟠"},{id:"lpg",label:"Υγραέριο (LPG)",icon:"🟣"},
+  {id:"cng",label:"Φυσικό Αέριο",icon:"⚪"},
 ];
 
 const EXPENSE_CATS = [
-  { id:"oil",      label:"Λάδια / Φίλτρα", icon:"🛢️" },
-  { id:"adblue",   label:"AdBlue",          icon:"💧" },
-  { id:"tyres",    label:"Ελαστικά",        icon:"⚫" },
-  { id:"chains",   label:"Αλυσίδες",        icon:"🔗" },
-  { id:"cleaning", label:"Καθαριστικά",     icon:"🧴" },
-  { id:"parts",    label:"Ανταλλακτικά",    icon:"🔩" },
-  { id:"parking",  label:"Parking",         icon:"🅿️" },
-  { id:"tolls",    label:"Διόδια",          icon:"🛣️" },
-  { id:"service",  label:"Service",         icon:"🔧" },
-  { id:"custom",   label:"Άλλο",            icon:"💸" },
+  {id:"tolls",label:"Διόδια",icon:"🛣️"},
+  {id:"transponder",label:"Πομποδέκτης Ε.Ο.",icon:"📡"},
+  {id:"parking",label:"Parking",icon:"🅿️"},
+  {id:"car_wash",label:"Πλύσιμο",icon:"🚿"},
+  {id:"car_clean",label:"Καθαρισμός",icon:"🧹"},
+  {id:"glass",label:"Τζάμια",icon:"🪟"},
+  {id:"kek",label:"ΚΕΚ",icon:"🚗💨"},
+  {id:"kteo",label:"ΚΤΕΟ",icon:"🚗✅"},
+  {id:"road_tax",label:"Τέλη Κυκλοφορίας",icon:"🚘"},
+  {id:"insurance",label:"Ασφάλεια",icon:"🛡️"},
+  {id:"repair",label:"Επισκευή",icon:"🔩"},
+  {id:"service",label:"Service",icon:"🔧"},
+  {id:"oil",label:"Λάδια/Φίλτρα",icon:"🛢️"},
+  {id:"parts",label:"Ανταλλακτικά",icon:"⚙️"},
+  {id:"battery",label:"Μπαταρία",icon:"🔋"},
+  {id:"electrical",label:"Ηλεκτρολογικά",icon:"💡"},
+  {id:"tyres",label:"Ελαστικά",icon:"🛞"},
+  {id:"alignment",label:"Ζυγοστάθμιση",icon:"⚖️"},
+  {id:"fine",label:"Πρόστιμο",icon:"🚔"},
+  {id:"custom",label:"Άλλο",icon:"💸"},
 ];
 
-const MONTHS = ["Ιαν","Φεβ","Μαρ","Απρ","Μαΐ","Ιουν","Ιουλ","Αυγ","Σεπ","Οκτ","Νοε","Δεκ"];
-const KM2MI = 0.621371;
-const uid   = () => Math.random().toString(36).substr(2, 9);
-const fmt   = (n, d=2) => n != null ? (+n).toFixed(d) : "—";
-const today = () => new Date().toISOString().split("T")[0];
-const ddiff = ds => Math.round((new Date(ds) - new Date()) / 86400000);
+const MONTHS_FULL=["Ιανουάριος","Φεβρουάριος","Μάρτιος","Απρίλιος","Μάιος","Ιούνιος","Ιούλιος","Αύγουστος","Σεπτέμβριος","Οκτώβριος","Νοέμβριος","Δεκέμβριος"];
+const MONTHS_SHORT=["Ιαν","Φεβ","Μαρ","Απρ","Μαΐ","Ιουν","Ιουλ","Αυγ","Σεπ","Οκτ","Νοε","Δεκ"];
+const WEEKDAYS=["Δε","Τρ","Τε","Πε","Πα","Σα","Κυ"];
 
-const DK = { bg:"#0a0a0f", sf:"#13131e", br:"#252535", tx:"#f0f0ff", mt:"#8888aa", ft:"#3a3a55", inp:"#0a0a0f", ib:"#252535" };
-const LT = { bg:"#f0f2ff", sf:"#ffffff",  br:"#dde0f0", tx:"#0f0f1a", mt:"#555577", ft:"#9090aa", inp:"#ffffff", ib:"#c8cce0" };
+// ========== UTILITIES ==========
+const uid=()=>Math.random().toString(36).substr(2,9);
+const calcConsumption=(entry,prevEntry)=>{
+  if(!entry||!prevEntry)return null;
+  const curOdo=parseFloat(entry.odo),prevOdo=parseFloat(prevEntry.odo),liters=parseFloat(entry.liters);
+  if(!curOdo||!prevOdo||curOdo<=prevOdo||!liters)return null;
+  return liters/(curOdo-prevOdo)*100;
+};
+const fmt=(n,d=2)=>(n!=null&&!isNaN(n))?(+n).toFixed(d):"0.00";
+const today=()=>new Date().toISOString().split("T")[0];
+const formatDate=ds=>{
+  if(!ds)return"--/--/--";
+  const d=new Date(ds);
+  return`${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getFullYear()).slice(-2)}`;
+};
+const daysUntil=ds=>{if(!ds)return null;return Math.ceil((new Date(ds)-new Date(today()))/86400000);};
+const REMINDER_FIELDS=[
+  {f:"insuranceExp",label:"Λήξη Ασφάλειας",icon:"🛡️"},{f:"kteo",label:"ΚΤΕΟ",icon:"🔍"},
+  {f:"kek",label:"ΚΕΚ",icon:"🔬"},{f:"tiresNext",label:"Αλλαγή Ελαστικών",icon:"⚫"},
+  {f:"serviceNextDate",label:"Επόμενο Service",icon:"🔧"},
+];
+const WARN_DAYS=30;
+const WARN_KM=1000;
 
-const defV = () => ({
-  id:"v1", name:"Αυτοκίνητο 1", icon:"🚗", color:"#f97316", category:"car",
-  info:{ plate:"", chassis:"", brand:"", model:"", year:"", fuelType:"unleaded95", insurance:"", insuranceNo:"", notes:"" },
-  reminders:[], unitMiles:false,
-});
+// ========== THEME ==========
+const DK={bg:"#080810",sf:"#10101c",br:"#1e1e30",tx:"#eeeeff",mt:"#7777aa",ft:"#33334a",inp:"#0d0d1a",ib:"#1e1e30"};
+const LT={bg:"#f0e8db",sf:"#faf3e8",br:"#d4c0a8",tx:"#1a1510",mt:"#5c4e3d",ft:"#e0d0bc",inp:"#ffffff",ib:"#c4b098"};
 
-const emptyFuel = (ft="unleaded95", stId="", stLabel="") => ({
-  date:today(), fuelType:ft, liters:"", ppl:"", total:"",
-  km:"", odo:"", notes:"", stId, stLabel,
-  dual:false, lpgL:"", lpgP:"", lpgT:"",
-});
+// ========== DEFAULT FACTORIES ==========
+const defInfo=()=>({brand:"",model:"",year:"",cc:"",plate:"",chassis:"",insurance:"",insuranceExp:"",kteo:"",kek:"",tiresBrand:"",tiresSize:"",tiresDate:"",tiresNext:"",serviceDate:"",serviceNextDate:"",serviceKm:"",serviceNextKm:"",serviceNotes:"",driverMain:"",driverSecond:""});
+const defV=(ov={})=>({id:uid(),name:"ΝΕΟ ΟΧΗΜΑ",icon:"🚗",color:"#f97316",category:"car",fuelType:"diesel",fuelType2:"",unitMiles:false,info:defInfo(),...ov});
+const emptyFuel=ft=>({date:today(),fuelType:ft||"diesel",ppl:"",total:"",odo:"",notes:""});
+const emptyExp=()=>({date:today(),category:"tolls",label:"",amount:"",notes:""});
 
-const emptyExpense = () => ({ date:today(), catId:"oil", customCat:"", amount:"", notes:"" });
-
-// SVG Sparkline
-// Gauge / Speedometer chart
-function Gauge({ value, min, max, color, label, unit, T }) {
-  if (value == null) return null;
-  const pct    = Math.min(1, Math.max(0, (value - min) / (max - min || 1)));
-  const R      = 70, cx = 100, cy = 90;
-  const startA = Math.PI * 0.85;
-  const endA   = Math.PI * 2.15;
-  const totalA = endA - startA;
-  const valA   = startA + totalA * pct;
-  const arcPath = (r, a1, a2) => {
-    const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
-    const x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
-    const lg = (a2 - a1) > Math.PI ? 1 : 0;
-    return "M " + x1 + " " + y1 + " A " + r + " " + r + " 0 " + lg + " 1 " + x2 + " " + y2;
-  };
-  const needleX = cx + (R - 10) * Math.cos(valA);
-  const needleY = cy + (R - 10) * Math.sin(valA);
-  // tick marks
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map(t => {
-    const a = startA + totalA * t;
-    const x1t = cx + (R + 4) * Math.cos(a), y1t = cy + (R + 4) * Math.sin(a);
-    const x2t = cx + (R + 10) * Math.cos(a), y2t = cy + (R + 10) * Math.sin(a);
-    const tv  = min + (max - min) * t;
-    const lx  = cx + (R + 18) * Math.cos(a), ly = cy + (R + 18) * Math.sin(a);
-    return { x1t, y1t, x2t, y2t, lx, ly, tv };
-  });
-  const gid = "gauge_" + color.replace("#","");
-  return (
-    <div style={{textAlign:"center"}}>
-      <svg viewBox="0 0 200 110" style={{width:"100%",maxWidth:200,height:"auto",display:"block",margin:"0 auto"}}>
-        <defs>
-          <linearGradient id={gid} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#10b981"/>
-            <stop offset="50%" stopColor="#f97316"/>
-            <stop offset="100%" stopColor="#ef4444"/>
-          </linearGradient>
-        </defs>
-        {/* Track */}
-        <path d={arcPath(R, startA, endA)} fill="none" stroke={T.br} strokeWidth={10} strokeLinecap="round"/>
-        {/* Value arc */}
-        <path d={arcPath(R, startA, valA)} fill="none" stroke={"url(#" + gid + ")"} strokeWidth={10} strokeLinecap="round"/>
-        {/* Ticks */}
-        {ticks.map((tk, i) => (
-          <g key={i}>
-            <line x1={tk.x1t} y1={tk.y1t} x2={tk.x2t} y2={tk.y2t} stroke={T.ft} strokeWidth={1.5}/>
-          </g>
-        ))}
-        {/* Needle */}
-        <line x1={cx} y1={cy} x2={needleX} y2={needleY} stroke={color} strokeWidth={2.5} strokeLinecap="round"/>
-        <circle cx={cx} cy={cy} r={5} fill={color}/>
-        {/* Value text */}
-        <text x={cx} y={cy - 14} textAnchor="middle" fill={color} fontSize={16} fontWeight="700">{(+value).toFixed(value > 10 ? 1 : 3)}</text>
-        <text x={cx} y={cy - 2} textAnchor="middle" fill={T.mt} fontSize={9}>{unit}</text>
+// ========== COMPONENTS ==========
+function RoundCyberGauge({value,min,max,color,label,unit,T}){
+  const pct=Math.min(1,Math.max(0,(value-min)/(max-min||1)));
+  const R=42,cx=52,cy=52,sA=Math.PI*0.7,eA=Math.PI*2.3,totalArc=eA-sA,vA=sA+totalArc*pct;
+  const arcX=a=>cx+R*Math.cos(a),arcY=a=>cy+R*Math.sin(a);
+  const nx=cx+R*Math.cos(vA),ny=cy+R*Math.sin(vA);
+  const trackLargeArc=totalArc>Math.PI?1:0,valueArcAngle=totalArc*pct,valueLargeArc=valueArcAngle>Math.PI?1:0;
+  return(
+    <div style={{background:"#0a0a0f",borderRadius:"50%",padding:5,border:`2px solid ${color}`,width:"100%",aspectRatio:"1/1",position:"relative"}}>
+      <svg viewBox="0 0 104 104">
+        <path d={`M ${arcX(sA)} ${arcY(sA)} A ${R} ${R} 0 ${trackLargeArc} 1 ${arcX(eA)} ${arcY(eA)}`} fill="none" stroke="#1e1e30" strokeWidth={6} strokeLinecap="round"/>
+        {pct>0.005&&<path d={`M ${arcX(sA)} ${arcY(sA)} A ${R} ${R} 0 ${valueLargeArc} 1 ${nx} ${ny}`} fill="none" stroke={color} strokeWidth={6} strokeLinecap="round"/>}
+        {pct>0.005&&<path d={`M ${arcX(sA)} ${arcY(sA)} A ${R} ${R} 0 ${valueLargeArc} 1 ${nx} ${ny}`} fill="none" stroke={color} strokeWidth={10} strokeLinecap="round" opacity={0.15}/>}
+        <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={color} strokeWidth={2.5} strokeLinecap="round"/>
+        <circle cx={cx} cy={cy} r={3} fill={color}/><circle cx={cx} cy={cy} r={1.5} fill="#0a0a0f"/>
+        <text x={cx} y={cy+4} textAnchor="middle" fill="#ffffff" fontSize={11} fontWeight="900" style={{filter:`drop-shadow(0 0 4px ${color})`}}>{fmt(value,1)}</text>
+        <text x={cx} y={cy+14} textAnchor="middle" fill="#9999bb" fontSize={5.5}>{unit}</text>
       </svg>
-      <div style={{fontSize:10,color:T.mt,letterSpacing:1,marginTop:-4}}>{label}</div>
+      <div style={{position:"absolute",bottom:6,width:"100%",textAlign:"center",fontSize:7,color,fontWeight:700,letterSpacing:0.5}}>{label}</div>
     </div>
   );
 }
 
-// Mini sparkline (kept for bar/trend charts)
-function SVGChart({ points, color, type }) {
-  if (!points || points.length < 2) return null;
-  const W=400, H=70, P=6;
-  const vals = points.map(p => p.y);
-  const minV = Math.min(...vals), maxV = Math.max(...vals), range = maxV - minV || 1;
-  const sx = i => P + (i / (points.length - 1)) * (W - P * 2);
-  const sy = v => H - P - ((v - minV) / range) * (H - P * 2);
-  if (type === "bar") {
-    const bw = Math.max(3, (W - P * 2) / points.length - 4);
-    return (
-      <svg viewBox={"0 0 " + W + " " + H} style={{width:"100%",height:70,display:"block"}}>
-        {points.map((p, i) => (
-          <rect key={i} x={sx(i)-bw/2} y={sy(p.y)} width={bw} height={H-P-sy(p.y)} fill={color} opacity={0.9} rx={3}/>
-        ))}
+function StackedBarChart({data,T}){
+  const [sel,setSel]=useState(null);
+  if(!data.length)return null;
+  const max=Math.max(...data.map(d=>d.fuel+d.exp),0.01),W=300,H=90,bw=Math.floor(W/data.length)-4;
+  const s=sel!=null?data[sel]:null;
+  return(
+    <div>
+      <div style={{display:"flex",gap:14,fontSize:10,color:T.mt,marginBottom:6}}><span>🟦 Καύσιμα</span><span>🟥 Λοιπά έξοδα</span></div>
+      <svg width="100%" viewBox={`0 0 ${W} ${H+28}`} style={{overflow:"visible"}}>
+        {data.map((d,i)=>{
+          const x=i*(W/data.length)+2,hf=(d.fuel/max)*H,he=(d.exp/max)*H,op=sel===null||sel===i?0.9:0.35,tot=d.fuel+d.exp;
+          return(
+            <g key={i} onClick={()=>setSel(sel===i?null:i)} style={{cursor:"pointer"}}>
+              <rect x={x-1} y={0} width={bw+2} height={H+20} fill="transparent"/>
+              <rect x={x} y={H-hf} width={bw} height={hf} fill="#3b82f6" opacity={op}/>
+              <rect x={x} y={H-hf-he} width={bw} height={he} fill="#e11d48" opacity={op}/>
+              <text x={x+bw/2} y={H+14} textAnchor="middle" fill={sel===i?T.tx:T.mt} fontSize={6.5} fontWeight={sel===i?"bold":"normal"}>{d.label}</text>
+              {tot>0&&<text x={x+bw/2} y={H-hf-he-4} textAnchor="middle" fill={T.mt} fontSize={6}>{tot.toFixed(0)}</text>}
+            </g>
+          );
+        })}
       </svg>
-    );
-  }
-  const d    = points.map((p, i) => (i===0?"M":"L") + sx(i) + "," + sy(p.y)).join(" ");
-  const area = d + " L" + sx(points.length-1) + "," + (H-P) + " L" + P + "," + (H-P) + " Z";
-  const gid  = "sp" + color.replace("#","");
-  return (
-    <svg viewBox={"0 0 " + W + " " + H} style={{width:"100%",height:70,display:"block"}}>
-      <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.4}/>
-          <stop offset="100%" stopColor={color} stopOpacity={0}/>
-        </linearGradient>
-      </defs>
-      <path d={area} fill={"url(#" + gid + ")"}/>
-      <path d={d} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round"/>
-      {points.map((p, i) => <circle key={i} cx={sx(i)} cy={sy(p.y)} r={3.5} fill={color}/>)}
-    </svg>
-  );
-}
-
-function ChartBlock({ title, data, dk, color, type, T }) {
-  const pts = data.filter(d => d[dk] != null).map(d => ({ x:d.date, y:d[dk] }));
-  if (pts.length < 2) return null;
-  return (
-    <div style={{marginBottom:14}}>
-      <div style={{fontSize:11,color:T.mt,letterSpacing:1,marginBottom:6}}>{title}</div>
-      <div style={{background:T.bg,borderRadius:12,padding:"10px 8px 4px",border:"1px solid " + T.br}}>
-        <SVGChart points={pts} color={color} type={type || "line"}/>
-        <div style={{display:"flex",justifyContent:"space-between",padding:"2px 4px 2px"}}>
-          <span style={{fontSize:10,color:T.ft}}>{pts[0].x}</span>
-          <span style={{fontSize:10,color:T.ft}}>{pts[pts.length-1].x}</span>
-        </div>
+      <div style={{fontSize:11,color:T.mt,textAlign:"center",marginTop:4}}>
+        {s?<span><b style={{color:T.tx}}>{s.label}</b> · ⛽ <b style={{color:"#3b82f6"}}>{fmt(s.fuel)}€</b> · 📋 <b style={{color:"#e11d48"}}>{fmt(s.exp)}€</b> · Σύνολο <b style={{color:T.tx}}>{fmt(s.fuel+s.exp)}€</b></span>:"Πάτα μια στήλη για λεπτομέρειες"}
       </div>
     </div>
   );
 }
 
-function Modal({ title, onClose, T, children }) {
-  return (
-    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-      <div onClick={e => e.stopPropagation()} style={{background:T.sf,borderRadius:"20px 20px 0 0",padding:22,width:"100%",maxWidth:480,maxHeight:"90vh",overflowY:"auto",border:"1px solid " + T.br}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-          <span style={{fontWeight:700,fontSize:16,color:T.tx}}>{title}</span>
-          <button onClick={onClose} style={{background:"none",border:"none",color:T.mt,fontSize:24,lineHeight:1,cursor:"pointer"}}>x</button>
+function LineChart({data,color,avg,T}){
+  const [sel,setSel]=useState(null);
+  const W=300,H=100,pad=8;
+  const vals=data.map(d=>d.value),mn=Math.min(...vals),mx=Math.max(...vals),span=(mx-mn)||1,lo=mn-span*0.2,hi=mx+span*0.2;
+  const X=i=>pad+(data.length>1?i*(W-2*pad)/(data.length-1):0),Y=v=>H-pad-((v-lo)/(hi-lo))*(H-2*pad);
+  const path=data.map((d,i)=>`${i?"L":"M"}${X(i)} ${Y(d.value)}`).join(" ");
+  const s=sel!=null?data[sel]:null;
+  return(
+    <div>
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`}>
+        {avg>0&&avg>=lo&&avg<=hi&&<line x1={pad} x2={W-pad} y1={Y(avg)} y2={Y(avg)} stroke={T.mt} strokeDasharray="3 3" strokeWidth={0.8}/>}
+        <path d={path} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round"/>
+        {data.map((d,i)=>(
+          <g key={i} onClick={()=>setSel(sel===i?null:i)} style={{cursor:"pointer"}}>
+            <circle cx={X(i)} cy={Y(d.value)} r={sel===i?5:3} fill={color}/>
+            <circle cx={X(i)} cy={Y(d.value)} r={10} fill="transparent"/>
+          </g>
+        ))}
+      </svg>
+      <div style={{fontSize:11,color:T.mt,textAlign:"center"}}>
+        {s?<span><b style={{color}}>{s.value} L/100km</b> · {s.label}</span>:`Μέση: ${fmt(avg,1)} L/100km (διακεκομμένη) · πάτα ένα σημείο`}
+      </div>
+    </div>
+  );
+}
+
+function Modal({open,onClose,title,children,T}){
+  if(!open)return null;
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:300,display:"flex",alignItems:"flex-end"}} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div style={{background:T.sf,borderRadius:"22px 22px 0 0",width:"100%",maxHeight:"92vh",overflowY:"auto",padding:"20px 16px 36px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <h3 style={{margin:0,fontSize:16}}>{title}</h3>
+          <button onClick={onClose} style={{border:"none",background:"none",color:T.mt,fontSize:26,cursor:"pointer",lineHeight:1}}>✕</button>
         </div>
         {children}
       </div>
@@ -215,888 +169,1035 @@ function Modal({ title, onClose, T, children }) {
   );
 }
 
-function StationModal({ current, onSelect, onClose, T }) {
-  const [custom, setCustom] = useState(current.stId === "other" ? current.stLabel : "");
-  return (
-    <Modal title="Επιλογή Πρατηρίου" onClose={onClose} T={T}>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
-        {STATIONS.map(s => (
-          <button key={s.id}
-            onClick={() => { if (s.id !== "other") onSelect(s.id, s.label); else onSelect("other", custom || "Άλλο"); }}
-            style={{padding:"10px 8px",border:"2px solid " + (current.stId === s.id ? s.bg : T.br),borderRadius:10,
-              background:current.stId === s.id ? s.bg : "transparent",
-              color:current.stId === s.id ? s.fg : T.tx,
-              fontSize:13,fontWeight:current.stId === s.id ? 700 : 400,cursor:"pointer"}}>
-            {s.label}
+function MonthGroup({monthKey,label,badge,total,isOpen,onToggle,T,children}){
+  return(
+    <div style={{marginBottom:8}}>
+      <div onClick={onToggle} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",cursor:"pointer",userSelect:"none",background:isOpen?T.br:T.sf,border:`1px solid ${T.br}`,borderRadius:isOpen?"12px 12px 0 0":12}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:15}}>📅</span>
+          <span style={{fontWeight:"bold",fontSize:14}}>{label}</span>
+          <span style={{fontSize:11,fontWeight:"bold",padding:"2px 8px",borderRadius:10,background:"rgba(127,127,200,0.2)",color:T.mt}}>{badge}</span>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          {total!=null&&<span style={{color:"#e07b54",fontWeight:"bold",fontSize:14}}>{total}</span>}
+          <span style={{color:T.mt,fontSize:12}}>{isOpen?"▲":"▼"}</span>
+        </div>
+      </div>
+      {isOpen&&<div style={{border:`1px solid ${T.br}`,borderTop:"none",borderRadius:"0 0 12px 12px",overflow:"hidden"}}>{children}</div>}
+    </div>
+  );
+}
+
+function FuelEntryRow({e,i,total,allFuel,T,col,swipeId,setSwipeId,swipeStartX,onEdit,onDel}){
+  const ftype=FTYPES.find(f=>f.id===e.fuelType);
+  const prev=e._gi>0?allFuel[e._gi-1]:null;
+  const diffKm=(e.odo!=null&&prev&&prev.odo!=null&&e.odo>prev.odo)?(e.odo-prev.odo):null;
+  const cons=e._cons!=null?e._cons:calcConsumption(e,prev);
+  const isSwipe=swipeId===e.id;
+  return(
+    <div style={{position:"relative",overflow:"hidden"}}
+      onTouchStart={ev=>{swipeStartX.current=ev.touches[0].clientX;}}
+      onTouchEnd={ev=>{
+        if(swipeStartX.current===null)return;
+        const dx=swipeStartX.current-ev.changedTouches[0].clientX;
+        if(dx>60)setSwipeId(e.id);else if(dx<-20)setSwipeId(null);
+        swipeStartX.current=null;
+      }}>
+      <div style={{position:"absolute",right:0,top:0,bottom:0,width:90,background:"#e11d48",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}} onClick={()=>{onDel(e.id);setSwipeId(null);}}>
+        <span style={{color:"#fff",fontSize:22}}>🗑️</span>
+      </div>
+      <div style={{padding:"10px 14px",background:i%2===0?T.sf:T.bg,borderBottom:i<total-1?`1px solid ${T.ft}`:"none",transform:isSwipe?"translateX(-90px)":"translateX(0)",transition:"transform 0.25s ease",position:"relative",zIndex:1}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+          <span style={{fontSize:13,fontWeight:"bold"}}>{formatDate(e.date)}</span>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            {diffKm!=null&&diffKm>0&&<span style={{fontSize:11,color:"#10b981"}}>📍{diffKm}χλμ</span>}
+            <span style={{fontSize:11,color:T.mt}}>{ftype?`${ftype.icon} ${ftype.label}`:e.fuelType}</span>
+          </div>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <span style={{fontSize:15,fontWeight:"bold"}}>{fmt(e.liters,2)} L</span>
+            <span style={{fontSize:12,marginLeft:8,color:T.mt}}>{fmt(e.ppl,3)} €/L</span>
+            {cons!=null&&<span style={{fontSize:11,marginLeft:8,color:col,fontWeight:"bold"}}>{fmt(cons,1)} L/100km</span>}
+            {e.odo&&<div style={{fontSize:11,color:T.mt,marginTop:2}}>ODO: {Number(e.odo).toLocaleString()} km</div>}
+            {e.notes&&<div style={{fontSize:11,color:T.mt,marginTop:2}}>📝 {e.notes}</div>}
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:16,fontWeight:"bold",color:"#ef4444"}}>{fmt(e.total)}€</span>
+            <button onClick={()=>onEdit({...e})} style={{border:"none",background:T.br,color:T.mt,cursor:"pointer",fontSize:12,padding:"4px 7px",borderRadius:6}}>✏️</button>
+            <button onClick={()=>onDel(e.id)} style={{border:"none",background:"none",color:T.mt,cursor:"pointer",fontSize:16}}>✕</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ExpenseEntryRow({e,i,total,T,onEdit,onDel}){
+  const cat=EXPENSE_CATS.find(c=>c.id===e.category);
+  return(
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",background:i%2===0?T.sf:T.bg,borderBottom:i<total-1?`1px solid ${T.ft}`:"none"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <span style={{fontSize:20}}>{cat&&cat.icon||e.icon||"💸"}</span>
+        <div>
+          <div style={{fontWeight:"bold",fontSize:13}}>{e.label||cat&&cat.label}</div>
+          <div style={{fontSize:11,color:T.mt}}>{formatDate(e.date)}{cat&&e.label&&e.label!==cat.label?` · ${cat.label}`:""}</div>
+        </div>
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:5}}>
+        <span style={{fontWeight:"bold",color:"#e11d48",fontSize:14}}>-{fmt(e.amount)}€</span>
+        <button onClick={()=>onEdit({...e})} style={{border:"none",background:T.br,color:T.mt,cursor:"pointer",fontSize:12,padding:"4px 7px",borderRadius:6}}>✏️</button>
+        <button onClick={()=>onDel(e.id)} style={{border:"none",background:"none",color:T.mt,cursor:"pointer",fontSize:16,padding:2}}>✕</button>
+      </div>
+    </div>
+  );
+}
+
+function NoteEntryRow({e,i,total,T,onEdit,onDel}){
+  return(
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,padding:"10px 14px",background:i%2===0?T.sf:T.bg,borderBottom:i<total-1?`1px solid ${T.ft}`:"none"}}>
+      <div style={{display:"flex",gap:10,minWidth:0}}>
+        <span style={{fontSize:20}}>📝</span>
+        <div style={{minWidth:0}}>
+          <div style={{fontSize:11,color:T.mt,marginBottom:2}}>{formatDate(e.date)}</div>
+          <div style={{fontSize:13,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{e.text}</div>
+        </div>
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+        <button onClick={()=>onEdit({...e})} style={{border:"none",background:T.br,color:T.mt,cursor:"pointer",fontSize:12,padding:"4px 7px",borderRadius:6}}>✏️</button>
+        <button onClick={()=>onDel(e.id)} style={{border:"none",background:"none",color:T.mt,cursor:"pointer",fontSize:16,padding:2}}>✕</button>
+      </div>
+    </div>
+  );
+}
+
+// ========== MAIN APP ==========
+export default function FuelLog(){
+  const [dark,setDark]=useState(true);
+  const T=dark?DK:LT;
+  const [vehicles,setVehicles]=useState([{...defV(),id:"v1",name:"ΕΤΑΙΡΙΚΟ",icon:"🚗",color:"#f97316",fuelType:"diesel",fuelType2:""}]);
+  const [vid,setVid]=useState("v1");
+  const [entries,setEntries]=useState({});
+  const [expenses,setExpenses]=useState({});
+  const [notes,setNotes]=useState({});
+  const [noteEdit,setNoteEdit]=useState(null);
+  const [confirmDel,setConfirmDel]=useState(null);
+  const askDel=(title,detail,fn)=>setConfirmDel({title,detail,fn});
+  const [lastBackup,setLastBackup]=useState(()=>{try{return localStorage.getItem("fuellog_last_backup")||"";}catch(e){return "";}});
+  const [hideBackup,setHideBackup]=useState(false);
+  const [expCatFilter,setExpCatFilter]=useState("all");
+  const [tab,setTab]=useState("home");
+  const [fY,setFY]=useState(String(new Date().getFullYear()));
+  const [fM,setFM]=useState("all");
+  const [openFuelM,setOpenFuelM]=useState({});
+  const [openExpM,setOpenExpM]=useState({});
+  const [openCat,setOpenCat]=useState(null);
+  const [openCatMonth,setOpenCatMonth]=useState({});
+  const [histSort,setHistSort]=useState("date_desc");
+  const [movFilter,setMovFilter]=useState("all");
+  const [movView,setMovView]=useState("list");
+  const [calY,setCalY]=useState(new Date().getFullYear());
+  const [calM,setCalM]=useState(new Date().getMonth());
+  const [selDay,setSelDay]=useState(null);
+  const [swipeId,setSwipeId]=useState(null);
+  const swipeStartX=useRef(null);
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+  const isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
+  const [showInstallBanner,setShowInstallBanner]=useState(false);
+  const [installPrompt,setInstallPrompt]=useState(null);
+  const [fuelForm,setFuelForm]=useState(emptyFuel("diesel"));
+  const [expForm,setExpForm]=useState(emptyExp());
+  const [showAddV,setShowAddV]=useState(false);
+  const [newV,setNewV]=useState(defV());
+  const [showVInfo,setShowVInfo]=useState(false);
+  const [showAbout,setShowAbout]=useState(false);
+  const [showIO,setShowIO]=useState(false);
+  const [showEditV,setShowEditV]=useState(false);
+  const [editVData,setEditVData]=useState(null);
+  const [editFuelE,setEditFuelE]=useState(null);
+  const [editExpE,setEditExpE]=useState(null);
+  const [importText,setImportText]=useState("");
+  const [importMsg,setImportMsg]=useState("");
+  const importRef=useRef();
+
+  const av=vehicles.find(v=>v.id===vid)||vehicles[0];
+  const col=av.color;
+
+  useEffect(()=>{
+    try{const s=localStorage.getItem("fuellog_data");if(s){const d=JSON.parse(s);if(d.vehicles)setVehicles(d.vehicles);if(d.entries)setEntries(d.entries);if(d.expenses)setExpenses(d.expenses);if(d.notes)setNotes(d.notes);if(d.vid)setVid(d.vid);}}catch(e){}
+  },[]);
+
+  useEffect(()=>{
+    const handler=e=>{e.preventDefault();setInstallPrompt(e);if(!isStandalone)setShowInstallBanner(true);};
+    window.addEventListener('beforeinstallprompt',handler);
+    if(isIOS&&!isStandalone)setShowInstallBanner(true);
+    return()=>window.removeEventListener('beforeinstallprompt',handler);
+  },[]);
+
+  useEffect(()=>{localStorage.setItem("fuellog_data",JSON.stringify({vehicles,entries,expenses,notes,vid}));},[vehicles,entries,expenses,notes,vid]);
+  useEffect(()=>{setFuelForm(emptyFuel(av.fuelType||"diesel"));},[vid]);
+
+  const allFuel=useMemo(()=>(entries[vid]||[]).sort((a,b)=>new Date(a.date)-new Date(b.date)),[entries,vid]);
+  const allNotes=useMemo(()=>(notes[vid]||[]).slice().sort((a,b)=>new Date(a.date)-new Date(b.date)),[notes,vid]);
+  const allExp=useMemo(()=>(expenses[vid]||[]).sort((a,b)=>new Date(a.date)-new Date(b.date)),[expenses,vid]);
+
+  const filtFuel=useMemo(()=>{let f=allFuel;if(fY!=="all")f=f.filter(e=>e.date.startsWith(fY));if(fM!=="all")f=f.filter(e=>e.date.slice(5,7)===fM);return f;},[allFuel,fY,fM]);
+  const filtExp=useMemo(()=>{let f=allExp;if(fY!=="all")f=f.filter(e=>e.date.startsWith(fY));if(fM!=="all")f=f.filter(e=>e.date.slice(5,7)===fM);return f;},[allExp,fY,fM]);
+
+  const stats=useMemo(()=>{
+    const fuelSpent=filtFuel.reduce((s,x)=>s+(parseFloat(x.total)||0),0);
+    const expSpent=filtExp.reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
+    const tL=filtFuel.reduce((s,x)=>s+(parseFloat(x.liters)||0),0);
+    const withOdo=filtFuel.filter(x=>x.odo!=null&&parseFloat(x.odo)>0);
+    let totalConsL=0,totalConsKm=0;
+    for(let i=1;i<withOdo.length;i++){const p=parseFloat(withOdo[i-1].odo),c=parseFloat(withOdo[i].odo),l=parseFloat(withOdo[i].liters)||0;if(c>p&&l>0){totalConsKm+=(c-p);totalConsL+=l;}}
+    const aC=totalConsKm>0?(totalConsL/totalConsKm*100):0;
+    const wP=filtFuel.filter(x=>parseFloat(x.ppl)>0);
+    const aP=wP.length?+(wP.reduce((s,x)=>s+parseFloat(x.ppl),0)/wP.length).toFixed(3):0;
+    const odoEntries=filtFuel.filter(x=>x.odo!=null&&parseFloat(x.odo)>0).sort((a,b)=>parseFloat(a.odo)-parseFloat(b.odo));
+    const totalKm=odoEntries.length>=2?(parseFloat(odoEntries[odoEntries.length-1].odo)-parseFloat(odoEntries[0].odo)):0;
+    const costPerKm=totalKm>0?((fuelSpent+expSpent)/totalKm):0;
+    const fuelCostPerKm=totalKm>0?(fuelSpent/totalKm):0;
+    return{fuelSpent,expSpent,totalSpent:fuelSpent+expSpent,tL,aC,aP,totalKm,costPerKm,fuelCostPerKm};
+  },[filtFuel,filtExp]);
+
+  const gaugeRanges=useMemo(()=>{
+    const ppls=allFuel.map(x=>parseFloat(x.ppl)).filter(x=>x>0);
+    const pplMin=ppls.length?Math.max(0.5,Math.min(...ppls)-0.2):0.8;
+    const pplMax=ppls.length?Math.max(...ppls)+0.3:3.0;
+    return{consMin:0,consMax:20,pplMin,pplMax};
+  },[allFuel]);
+
+  const reminders=useMemo(()=>{
+    const list=[];
+    vehicles.forEach(v=>{REMINDER_FIELDS.forEach(({f,label,icon})=>{const ds=(v.info||{})[f],days=daysUntil(ds);if(days===null)return;if(days<=WARN_DAYS)list.push({vid:v.id,vName:v.name,vIcon:v.icon,vColor:v.color,label,icon,days,date:ds,urgent:days<=7,expired:days<0});});});
+    vehicles.forEach(v=>{
+      const nk=parseFloat((v.info||{}).serviceNextKm);
+      const odos=(entries[v.id]||[]).map(e=>parseFloat(e.odo)).filter(x=>x>0);
+      if(nk>0&&odos.length){
+        const left=nk-Math.max(...odos);
+        if(left<=WARN_KM)list.push({vid:v.id,vName:v.name,vIcon:v.icon,vColor:v.color,label:"Service (χλμ)",icon:"🔧",isKm:true,kmLeft:left,days:Math.max(0,Math.round(left/50)),date:String(nk),urgent:left<=300,expired:left<=0});
+      }
+    });
+    return list.sort((a,b)=>a.days-b.days);
+  },[vehicles,entries]);
+
+  const monthlyBarData=useMemo(()=>{
+    const yF=fY==="all"?allFuel:allFuel.filter(e=>e.date.startsWith(fY));
+    const yE=fY==="all"?allExp:allExp.filter(e=>e.date.startsWith(fY));
+    return MONTHS_SHORT.map((label,i)=>{
+      const m=String(i+1).padStart(2,"0");
+      const f=yF.filter(e=>e.date.slice(5,7)===m).reduce((s,x)=>s+(parseFloat(x.total)||0),0);
+      const x=yE.filter(e=>e.date.slice(5,7)===m).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
+      return{label,fuel:+f.toFixed(2),exp:+x.toFixed(2)};
+    });
+  },[allFuel,allExp,fY]);
+
+  const expByMonth=useMemo(()=>{
+    const map={};
+    allExp.forEach(e=>{
+      const d=new Date(e.date),k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+      if(!map[k])map[k]={key:k,label:`${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`,entries:[],total:0,byCategory:{}};
+      map[k].entries.push(e);map[k].total+=(parseFloat(e.amount)||0);
+      const cat=e.category||"custom";map[k].byCategory[cat]=(map[k].byCategory[cat]||0)+(parseFloat(e.amount)||0);
+    });
+    return Object.values(map).sort((a,b)=>b.key.localeCompare(a.key));
+  },[allExp]);
+
+  // Fuel entries with their index and consumption (used by Κινήσεις)
+  const fuelMeta=useMemo(()=>allFuel.map((e,gi)=>({...e,_gi:gi,_cons:calcConsumption(e,gi>0?allFuel[gi-1]:null)})),[allFuel]);
+
+  const consSeries=useMemo(()=>fuelMeta.filter(e=>e._cons!=null&&(fY==="all"||e.date.startsWith(fY))).map(e=>({label:formatDate(e.date),value:+e._cons.toFixed(2)})),[fuelMeta,fY]);
+
+  // Unified movements (fuel + expenses) grouped by month
+  const movesByMonth=useMemo(()=>{
+    const items=[];
+    if(movFilter==="all"||movFilter==="fuel")fuelMeta.forEach(e=>items.push({kind:"fuel",e}));
+    if(movFilter==="all"||movFilter==="exp")allExp.forEach(e=>items.push({kind:"exp",e}));
+    if(movFilter==="all"||movFilter==="note")allNotes.forEach(e=>items.push({kind:"note",e}));
+    const dir=histSort==="date_asc"?1:-1;
+    items.sort((a,b)=>dir*(new Date(a.e.date)-new Date(b.e.date)));
+    const map={};
+    items.forEach(it=>{
+      const d=new Date(it.e.date),k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+      if(!map[k])map[k]={key:k,label:`${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`,items:[],nF:0,nE:0,nN:0,total:0};
+      map[k].items.push(it);
+      if(it.kind==="fuel"){map[k].nF++;map[k].total+=(parseFloat(it.e.total)||0);}
+      else if(it.kind==="note"){map[k].nN++;}
+      else{map[k].nE++;map[k].total+=(parseFloat(it.e.amount)||0);}
+    });
+    return Object.values(map).sort((a,b)=>dir*a.key.localeCompare(b.key));
+  },[fuelMeta,allExp,allNotes,movFilter,histSort]);
+
+  // Per-day lookup for the calendar
+  const dayMap=useMemo(()=>{
+    const m={};
+    fuelMeta.forEach(e=>{(m[e.date]=m[e.date]||{f:[],x:[],n:[]}).f.push(e);});
+    allExp.forEach(e=>{(m[e.date]=m[e.date]||{f:[],x:[],n:[]}).x.push(e);});
+    allNotes.forEach(e=>{(m[e.date]=m[e.date]||{f:[],x:[],n:[]}).n.push(e);});
+    return m;
+  },[fuelMeta,allExp,allNotes]);
+
+  const availYears=useMemo(()=>{
+    const ys=new Set([String(new Date().getFullYear())]);
+    [...allFuel,...allExp].forEach(e=>{if(e.date)ys.add(e.date.slice(0,4));});
+    return[...ys].sort((a,b)=>b-a);
+  },[allFuel,allExp]);
+
+  const vFuelTypes=useMemo(()=>{
+    const ft=av.fuelType||"diesel",ft2=av.fuelType2;
+    const list=[FTYPES.find(f=>f.id===ft)].filter(Boolean);
+    if(ft2){const x=FTYPES.find(f=>f.id===ft2);if(x)list.push(x);}
+    return list.length?list:FTYPES;
+  },[av]);
+
+  const handleInstall=async()=>{if(installPrompt){installPrompt.prompt();const{outcome}=await installPrompt.userChoice;if(outcome==="accepted"){setShowInstallBanner(false);setInstallPrompt(null);}}};
+
+  // ── CRUD Fuel ──
+  const handleAddFuel=()=>{
+    const ppl=parseFloat(fuelForm.ppl),total=parseFloat(fuelForm.total);
+    if(!total)return;
+    const liters=ppl>0?+(total/ppl).toFixed(3):0;
+    setEntries(p=>({...p,[vid]:[...(p[vid]||[]),{...fuelForm,id:uid(),total,ppl:ppl||0,liters,odo:fuelForm.odo?parseFloat(fuelForm.odo):null}]}));
+    setFuelForm(emptyFuel(av.fuelType||"diesel"));setTab("home");
+  };
+  const handleDelFuel=id=>{const e=allFuel.find(x=>x.id===id);askDel("Γέμισμα καυσίμου",e?`${formatDate(e.date)} · ${fmt(e.total)}€`:"",()=>setEntries(p=>({...p,[vid]:(p[vid]||[]).filter(x=>x.id!==id)})));};
+  const handleSaveEditFuel=()=>{
+    const ppl=parseFloat(editFuelE.ppl),total=parseFloat(editFuelE.total),liters=ppl>0?+(total/ppl).toFixed(3):(parseFloat(editFuelE.liters)||0);
+    setEntries(p=>({...p,[vid]:(p[vid]||[]).map(e=>e.id===editFuelE.id?{...editFuelE,total,ppl,liters,odo:editFuelE.odo?parseFloat(editFuelE.odo):null}:e)}));
+    setEditFuelE(null);
+  };
+
+  // ── CRUD Expenses ──
+  const handleAddExp=()=>{
+    if(!expForm.amount)return;
+    const cat=EXPENSE_CATS.find(c=>c.id===expForm.category);
+    setExpenses(p=>({...p,[vid]:[...(p[vid]||[]),{...expForm,id:uid(),amount:parseFloat(expForm.amount),icon:cat&&cat.icon||"💸",label:expForm.label||cat&&cat.label||"Άλλο"}]}));
+    setExpForm(emptyExp());
+  };
+  const handleDelExp=id=>{const e=allExp.find(x=>x.id===id),c=e&&EXPENSE_CATS.find(k=>k.id===e.category);askDel("Έξοδο",e?`${(e.label||(c&&c.label)||"")} · ${formatDate(e.date)} · -${fmt(e.amount)}€`:"",()=>setExpenses(p=>({...p,[vid]:(p[vid]||[]).filter(x=>x.id!==id)})));};
+
+  // ── CRUD Notes ──
+  const handleSaveNote=()=>{
+    const text=(noteEdit.text||"").trim();if(!text)return;
+    setNotes(p=>{const list=p[vid]||[];const n={...noteEdit,text};return{...p,[vid]:n.id?list.map(x=>x.id===n.id?n:x):[...list,{...n,id:uid()}]};});
+    setNoteEdit(null);
+  };
+  const handleDelNote=id=>{const e=allNotes.find(x=>x.id===id);askDel("Σημείωση",e?`${formatDate(e.date)} · ${(e.text||"").slice(0,50)}${(e.text||"").length>50?"…":""}`:"",()=>setNotes(p=>({...p,[vid]:(p[vid]||[]).filter(x=>x.id!==id)})));};
+  const handleSaveEditExp=()=>{
+    const cat=EXPENSE_CATS.find(c=>c.id===editExpE.category);
+    setExpenses(p=>({...p,[vid]:(p[vid]||[]).map(e=>e.id===editExpE.id?{...editExpE,amount:parseFloat(editExpE.amount),icon:cat&&cat.icon||editExpE.icon}:e)}));
+    setEditExpE(null);
+  };
+
+  // ── CRUD Vehicles ──
+  const handleAddVehicle=()=>{const v={...newV,id:uid()};setVehicles(p=>[...p,v]);setVid(v.id);setShowAddV(false);setNewV(defV());setTab("home");};
+  const handleSaveEditV=()=>{
+    setVehicles(p=>p.map(v=>v.id===editVData.id?{...v,name:editVData.name,color:editVData.color,icon:editVData.icon,category:editVData.category,fuelType:editVData.fuelType,fuelType2:editVData.fuelType2}:v));
+    setShowEditV(false);setEditVData(null);
+  };
+  const handleDeleteV=()=>{
+    if(vehicles.length<=1){setConfirmDel({info:true,title:"Δεν μπορείς να διαγράψεις το μοναδικό όχημα."});return;}
+    askDel("Όχημα",editVData.name+" — θα διαγραφούν και όλα τα δεδομένα του.",()=>{
+    setVehicles(p=>p.filter(v=>v.id!==editVData.id));
+    setEntries(p=>{const n={...p};delete n[editVData.id];return n;});
+    setExpenses(p=>{const n={...p};delete n[editVData.id];return n;});
+    setNotes(p=>{const n={...p};delete n[editVData.id];return n;});
+    setVid((vehicles.find(v=>v.id!==editVData.id)||{}).id||"v1");
+    setShowEditV(false);setEditVData(null);
+    });
+  };
+  const updateVInfo=(f,val)=>setVehicles(p=>p.map(v=>v.id===vid?{...v,info:{...v.info,[f]:val}}:v));
+
+  // ── Export / Import ──
+  const exportJSON=()=>{
+    const a=document.createElement("a");
+    a.href="data:application/json;charset=utf-8,"+encodeURIComponent(JSON.stringify({vehicles,entries,expenses,notes},null,2));
+    a.download=`fuellog_${today()}.json`;a.click();
+    try{localStorage.setItem("fuellog_last_backup",today());}catch(e){}
+    setLastBackup(today());
+  };
+  const exportCSV=()=>{
+    let csv="Τύπος,Όχημα,Ημερομηνία,Κατηγορία,Λίτρα,€/L,Σύνολο€,ODO,Σημειώσεις\n";
+    vehicles.forEach(v=>{
+      (entries[v.id]||[]).forEach(e=>{csv+=`Καύσιμο,${v.name},${e.date},${e.fuelType},${fmt(e.liters)},${fmt(e.ppl,3)},${fmt(e.total)},${e.odo||""},${(e.notes||"").replace(/,/g,"")}\n`;});
+      (expenses[v.id]||[]).forEach(e=>{csv+=`Έξοδο,${v.name},${e.date},${e.category},,,${fmt(e.amount)},,${(e.label||"").replace(/,/g," ")}\n`;});
+      (notes[v.id]||[]).forEach(e=>{csv+=`Σημείωση,${v.name},${e.date},,,,,,${(e.text||"").replace(/[,\n]/g," ")}\n`;});
+    });
+    const a=document.createElement("a");
+    a.href="data:text/csv;charset=utf-8,\uFEFF"+encodeURIComponent(csv);
+    a.download=`fuellog_${today()}.csv`;a.click();
+  };
+  const exportExcel=()=>{
+    const sep="\t";
+    let out="FuelLog - "+av.name+"\r\n\r\nΓΕΜΙΣΜΑΤΑ ΚΑΥΣΙΜΟΥ\r\n";
+    out+=["Ημερομηνια","Τυπος","Λιτρα","Τιμη/L","Συνολο EUR","ODO","L/100km","Σημειωσεις"].join(sep)+"\r\n";
+    allFuel.forEach((e,gi)=>{
+      const prev=gi>0?allFuel[gi-1]:null,cons=calcConsumption(e,prev),ftype=FTYPES.find(f=>f.id===e.fuelType);
+      out+=[(formatDate(e.date)),(ftype?ftype.label:e.fuelType),(fmt(e.liters)),(fmt(e.ppl,3)),(fmt(e.total)),(e.odo||""),(cons?fmt(cons,1):""),(e.notes||"")].join(sep)+"\r\n";
+    });
+    if(allExp.length>0){
+      out+="\r\nΛΟΙΠΑ ΕΞΟΔΑ\r\n"+["Ημερομηνια","Κατηγορια","Περιγραφη","Ποσο EUR"].join(sep)+"\r\n";
+      allExp.forEach(e=>{const cat=EXPENSE_CATS.find(c=>c.id===e.category);out+=[(formatDate(e.date)),(cat?cat.label:e.category),(e.label||""),(fmt(e.amount))].join(sep)+"\r\n";});
+    }
+    const a=document.createElement("a");
+    a.href="data:text/tab-separated-values;charset=utf-8,\uFEFF"+encodeURIComponent(out);
+    a.download=`fuellog_${av.name}_${today()}.xls`;a.click();
+  };
+
+  const exportPDF=()=>{
+    const totalFuel=allFuel.reduce((s,x)=>s+(parseFloat(x.total)||0),0);
+    const totalExp=allExp.reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
+    const fuelRows=allFuel.map((e,gi)=>{
+      const prev=gi>0?allFuel[gi-1]:null,cons=calcConsumption(e,prev),ftype=FTYPES.find(f=>f.id===e.fuelType);
+      return`<tr><td>${formatDate(e.date)}</td><td>${ftype?ftype.label:e.fuelType}</td><td>${fmt(e.liters,2)}</td><td>${fmt(e.ppl,3)}</td><td><b>${fmt(e.total)}€</b></td><td>${e.odo?Number(e.odo).toLocaleString():"-"}</td><td>${cons?fmt(cons,1):"-"}</td><td>${e.notes||""}</td></tr>`;
+    }).join("");
+    const expRows=allExp.map(e=>{
+      const cat=EXPENSE_CATS.find(c=>c.id===e.category);
+      return`<tr><td>${formatDate(e.date)}</td><td>${cat?cat.label:e.category}</td><td>${e.label||""}</td><td style="color:#c00;font-weight:bold">-${fmt(e.amount)}€</td></tr>`;
+    }).join("");
+    const html=`<!DOCTYPE html><html lang="el"><head><meta charset="UTF-8"><title>FuelLog - ${av.name}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#111;padding:20px}.hdr{margin-bottom:14px;border-bottom:3px solid #f97316;padding-bottom:8px}.hdr h1{font-size:19px;color:#f97316}.hdr p{font-size:10px;color:#555;margin-top:4px}.totals{background:#f5f5f5;border-radius:6px;padding:8px 14px;display:flex;gap:24px;font-size:12px;margin-bottom:14px}.totals b{color:#f97316}h2{font-size:13px;margin:16px 0 7px;color:#1e1e30;border-left:4px solid #f97316;padding-left:8px}table{width:100%;border-collapse:collapse;margin-bottom:14px}thead tr{background:#1e1e30;color:#fff}th{padding:6px 8px;text-align:left;font-size:10px}td{padding:5px 8px;border-bottom:1px solid #eee}tr:nth-child(even) td{background:#f8f8fc}.footer{margin-top:18px;font-size:9px;color:#aaa;border-top:1px solid #eee;padding-top:8px}@media print{body{padding:8px}}</style></head><body><div class="hdr"><h1>⛽ FuelLog — ${av.name}${av.info&&av.info.plate?" ("+av.info.plate+")":""}</h1><p>Εξαγωγή: ${today()} &nbsp;|&nbsp; Γεμίσματα: ${allFuel.length} &nbsp;|&nbsp; Λίτρα: ${fmt(allFuel.reduce((s,x)=>s+(parseFloat(x.liters)||0),0),1)} L &nbsp;|&nbsp; Σύνολο: ${fmt(totalFuel+totalExp)}€</p></div><div class="totals"><div>Καύσιμα: <b>${fmt(totalFuel)}€</b></div><div>Άλλα έξοδα: <b>${fmt(totalExp)}€</b></div><div>Σύνολο: <b>${fmt(totalFuel+totalExp)}€</b></div></div><h2>⛽ Γεμίσματα Καυσίμου</h2><table><thead><tr><th>Ημερομηνία</th><th>Τύπος</th><th>Λίτρα</th><th>€/L</th><th>Σύνολο</th><th>ODO (km)</th><th>L/100km</th><th>Σημειώσεις</th></tr></thead><tbody>${fuelRows}</tbody></table>${allExp.length>0?"<h2>📋 Λοιπά Έξοδα</h2><table><thead><tr><th>Ημερομηνία</th><th>Κατηγορία</th><th>Περιγραφή</th><th>Ποσό</th></tr></thead><tbody>"+expRows+"</tbody></table>":""}<div class="footer">Δημιουργήθηκε από FuelLog v2.8 — Ταχμαζίδης Κ. Γιώργος</div><script>window.onload=function(){window.print();};<\/script></body></html>`;
+    const blob=new Blob([html],{type:"text/html;charset=utf-8"});
+    const url=URL.createObjectURL(blob);
+    const win=window.open(url,"_blank");
+    if(!win){const a=document.createElement("a");a.href=url;a.download=`fuellog_${av.name}_${today()}.html`;a.click();}
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+  };
+
+  const handleImport=()=>{
+    const text=importText.trim();
+    if(!text){setImportMsg("❌ Δεν έχεις επιλέξει αρχείο.");return;}
+    try{
+      const d=JSON.parse(text);
+      if(!d.vehicles&&!d.entries&&!d.expenses){setImportMsg("❌ Μη έγκυρη μορφή FuelLog.");return;}
+      if(d.vehicles)setVehicles(d.vehicles);if(d.entries)setEntries(d.entries);if(d.expenses)setExpenses(d.expenses);if(d.notes)setNotes(d.notes);
+      if(d.vehicles&&d.vehicles.length>0){const sv=d.vid||(d.vehicles[0].id);setVid(d.vehicles.find(v=>v.id===sv)?sv:d.vehicles[0].id);}
+      setImportMsg("✅ Εισαγωγή επιτυχής!");setImportText("");
+    }catch(e){setImportMsg("❌ Μη έγκυρο JSON.");}
+  };
+  const handleImportFile=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{setImportText(ev.target.result);setImportMsg("");};r.readAsText(f);};
+
+  // Inputs get a coloured (vehicle colour) border so they stand out
+  const IS={width:"100%",padding:12,marginBottom:10,borderRadius:8,background:T.inp,color:T.tx,border:`2px solid ${col}`,boxSizing:"border-box",fontSize:14};
+  const CS=(extra={})=>({background:T.sf,padding:14,borderRadius:14,border:`1px solid ${T.br}`,...extra});
+  const TABS=[{id:"home",label:"Αρχική",icon:"🏠"},{id:"fuel",label:"Καύσιμο",icon:"⛽"},{id:"expenses",label:"Έξοδα",icon:"📋"},{id:"stats",label:"Στατιστικά",icon:"📊"},{id:"history",label:"Κινήσεις",icon:"🧾"}];
+  const curMonthKey=today().slice(0,7);
+  const hasData=Object.values(entries).some(a=>a&&a.length)||Object.values(expenses).some(a=>a&&a.length)||Object.values(notes).some(a=>a&&a.length);
+  const backupAge=lastBackup?-daysUntil(lastBackup):null;
+  const needBackup=hasData&&!hideBackup&&(backupAge===null||backupAge>=30);
+  const chipStyle=on=>({padding:"6px 12px",borderRadius:16,border:"none",cursor:"pointer",fontSize:12,fontWeight:"bold",background:on?col:T.br,color:on?"#fff":T.mt});
+
+  return(
+    <div className="fl-root" style={{backgroundColor:T.bg,color:T.tx,minHeight:"100vh",fontFamily:"sans-serif",paddingBottom:90}}>
+      <style>{`.fl-root input:focus,.fl-root select:focus,.fl-root textarea:focus{outline:none;box-shadow:0 0 0 3px ${col}55}`}</style>
+
+      {/* Header */}
+      <header style={{padding:"10px 15px",background:T.sf,borderBottom:`1px solid ${T.br}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:22}}>⛽</span>
+          <span style={{fontWeight:"bold",fontSize:17}}>FuelLog v2.8</span>
+        </div>
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          <button onClick={()=>setShowVInfo(true)} style={{border:`1px solid ${T.br}`,background:T.br,color:T.mt,borderRadius:8,padding:"5px 10px",fontSize:12,cursor:"pointer"}}>🗂️ Αρχείο</button>
+          <button onClick={()=>setShowIO(true)} style={{border:`1px solid ${T.br}`,background:T.br,color:T.mt,borderRadius:8,padding:"5px 8px",fontSize:14,cursor:"pointer"}}>💾</button>
+          <button onClick={()=>setShowAbout(true)} style={{border:"none",background:"none",fontSize:20,cursor:"pointer"}}>ℹ️</button>
+          <button onClick={()=>setDark(!dark)} style={{border:"none",background:"none",fontSize:22,cursor:"pointer"}}>{dark?"☀️":"🌙"}</button>
+        </div>
+      </header>
+
+      {/* Vehicle selector */}
+      <div style={{display:"flex",gap:8,padding:"10px 15px",background:T.sf,borderBottom:`1px solid ${T.br}`,overflowX:"auto"}}>
+        {vehicles.map(v=>(
+          <div key={v.id} style={{display:"flex",alignItems:"center",borderRadius:20,background:vid===v.id?v.color:T.br,overflow:"hidden"}}>
+            <button onClick={()=>setVid(v.id)} style={{padding:"6px 12px",border:"none",cursor:"pointer",whiteSpace:"nowrap",background:"transparent",color:vid===v.id?"#fff":T.mt,fontWeight:"bold",fontSize:13}}>{v.icon} {v.name}</button>
+            {vid===v.id&&<button onClick={()=>{setEditVData({...v});setShowEditV(true);}} style={{border:"none",background:"rgba(0,0,0,0.2)",color:"#fff",cursor:"pointer",padding:"6px 8px",fontSize:12,borderLeft:"1px solid rgba(255,255,255,0.2)"}}>✏️</button>}
+          </div>
+        ))}
+        <button onClick={()=>{setNewV(defV());setShowAddV(true);}} style={{padding:"6px 12px",borderRadius:20,border:`1px dashed ${T.mt}`,background:"none",color:T.mt,cursor:"pointer",fontSize:18,lineHeight:1}}>+</button>
+      </div>
+
+      {/* Bottom nav */}
+      <div style={{position:"fixed",bottom:0,left:0,right:0,display:"flex",justifyContent:"space-around",background:T.sf,borderTop:`1px solid ${T.br}`,padding:"5px 0",zIndex:100}}>
+        {TABS.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{border:"none",background:"none",cursor:"pointer",padding:"3px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:1,color:tab===t.id?col:T.mt,fontSize:9,fontWeight:tab===t.id?"bold":"normal",position:"relative"}}>
+            <span style={{fontSize:19}}>{t.icon}</span>{t.label}
+            {t.id==="home"&&reminders.length>0&&(
+              <span style={{position:"absolute",top:0,right:2,background:reminders.some(r=>r.expired||r.urgent)?"#e11d48":"#eab308",color:"#fff",fontSize:8,fontWeight:"bold",padding:"1px 4px",borderRadius:8,minWidth:14,textAlign:"center"}}>{reminders.length}</span>
+            )}
           </button>
         ))}
       </div>
-      <div style={{marginBottom:12}}>
-        <label style={{display:"block",fontSize:11,color:T.mt,letterSpacing:1,marginBottom:4}}>Ή γράψε το όνομα</label>
-        <input value={custom} onChange={e => setCustom(e.target.value)} placeholder="π.χ. Μαμούθ Βενζινάδικο..."
-          style={{width:"100%",padding:"10px 12px",background:T.inp,border:"1px solid " + T.ib,borderRadius:10,color:T.tx,fontSize:14,boxSizing:"border-box"}}/>
-      </div>
-      {custom.trim() && (
-        <button onClick={() => onSelect("other", custom.trim())}
-          style={{width:"100%",padding:11,background:T.bg,border:"1px solid " + T.br,borderRadius:10,color:T.tx,fontSize:14,cursor:"pointer",marginBottom:8}}>
-          Χρήση: {custom.trim()}
-        </button>
-      )}
-    </Modal>
-  );
-}
 
-function FtBadge({ ftId, size }) {
-  const ft = FTYPES.find(f => f.id === ftId);
-  const fc = FT_COLORS[ftId] || {};
-  if (!ft) return null;
-  return (
-    <span style={{fontSize:size||11,background:fc.bg,color:fc.color,padding:"2px 8px",borderRadius:6,fontWeight:700,whiteSpace:"nowrap"}}>
-      {ft.icon} {ft.label}
-    </span>
-  );
-}
+      <main style={{padding:15}}>
 
-// Vehicle Info Modal
-function VehicleInfoModal({ av, onClose, onUpdate, onDelete, onAddReminder, onUpdateReminder, onDelReminder, T, dl }) {
-  const upI = (f, v) => onUpdate({ info:{ ...av.info, [f]:v } });
-  const upV = (f, v) => onUpdate({ [f]:v });
-  const lS  = { display:"block", fontSize:11, color:T.mt, letterSpacing:1, marginBottom:4 };
-  const iS  = { width:"100%", padding:"9px 11px", background:T.inp, border:"1px solid " + T.ib, borderRadius:9, color:T.tx, fontSize:13, boxSizing:"border-box" };
-
-  const rst = r => {
-    if (!r.dueDate) return null;
-    const d = ddiff(r.dueDate);
-    if (d < 0)   return { c:"#ef4444", l:"Εκπρόθεσμο " + Math.abs(d) + " μ." };
-    if (d <= 30) return { c:"#f97316", l:"Σε " + d + " μέρες" };
-    return { c:"#10b981", l:"Σε " + d + " μέρες" };
-  };
-
-  return (
-    <Modal title={av.icon + " " + av.name} onClose={onClose} T={T}>
-      {/* Category */}
-      <div style={{marginBottom:14}}>
-        <label style={lS}>ΤΥΠΟΣ ΟΧΗΜΑΤΟΣ</label>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          {VCATS.map(c => (
-            <button key={c.id} onClick={() => { upV("category", c.id); upV("icon", c.icons[0]); }}
-              style={{padding:"6px 12px",borderRadius:8,border:"1px solid " + (av.category===c.id?T.tx:T.br),
-                background:av.category===c.id?T.tx+"22":"transparent",color:av.category===c.id?T.tx:T.mt,fontSize:12,cursor:"pointer"}}>
-              {c.icons[0]} {c.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Icon picker */}
-      <div style={{marginBottom:14}}>
-        <label style={lS}>ΕΙΚΟΝΙΔΙΟ</label>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          {(VCATS.find(c=>c.id===av.category)?.icons||["🚗"]).map(ic => (
-            <button key={ic} onClick={() => upV("icon", ic)}
-              style={{fontSize:22,padding:"6px 10px",border:"2px solid " + (av.icon===ic?T.tx:T.br),borderRadius:9,background:"transparent",cursor:"pointer"}}>{ic}</button>
-          ))}
-        </div>
-      </div>
-
-      {/* Name */}
-      <div style={{marginBottom:12}}>
-        <label style={lS}>ΟΝΟΜΑ</label>
-        <input value={av.name} onChange={e => upV("name", e.target.value)} style={iS}/>
-      </div>
-
-      {/* Info grid */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-        {[["ΜΑΡΚΑ","brand","π.χ. Toyota"],["ΜΟΝΤΕΛΟ","model","π.χ. Corolla"],
-          ["ΕΤΟΣ","year","π.χ. 2020"],["ΠΙΝΑΚΙΔΑ","plate","π.χ. ΑΒΓ-1234"]].map(([lb,f,ph]) => (
-          <div key={f}>
-            <label style={lS}>{lb}</label>
-            <input value={av.info?.[f]||""} onChange={e => upI(f, e.target.value)} placeholder={ph} style={iS}/>
-          </div>
-        ))}
-      </div>
-
-      <div style={{marginBottom:12}}>
-        <label style={lS}>ΑΡ. ΠΛΑΙΣΙΟΥ / VIN</label>
-        <input value={av.info?.chassis||""} onChange={e => upI("chassis", e.target.value)} placeholder="π.χ. WBA3A5C51DF..." style={iS}/>
-      </div>
-
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-        <div>
-          <label style={lS}>ΑΣΦΑΛΙΣΤΙΚΗ</label>
-          <input value={av.info?.insurance||""} onChange={e => upI("insurance", e.target.value)} placeholder="π.χ. Interamerican" style={iS}/>
-        </div>
-        <div>
-          <label style={lS}>ΑΡ. ΑΣΦΑΛΙΣΤΗΡΙΟΥ</label>
-          <input value={av.info?.insuranceNo||""} onChange={e => upI("insuranceNo", e.target.value)} placeholder="π.χ. 12345678" style={iS}/>
-        </div>
-      </div>
-
-      <div style={{marginBottom:12}}>
-        <label style={lS}>ΚΥΡΙΟ ΚΑΥΣΙΜΟ</label>
-        <select value={av.info?.fuelType||"unleaded95"} onChange={e => upI("fuelType", e.target.value)}
-          style={{...iS, appearance:"none"}}>
-          {FTYPES.map(f => <option key={f.id} value={f.id}>{f.icon} {f.label}</option>)}
-        </select>
-      </div>
-
-      <div style={{marginBottom:20}}>
-        <label style={lS}>ΣΗΜΕΙΩΣΕΙΣ</label>
-        <input value={av.info?.notes||""} onChange={e => upI("notes", e.target.value)} placeholder="π.χ. Χειμερινά λάδια..." style={iS}/>
-      </div>
-
-      {/* Reminders */}
-      <div style={{borderTop:"1px solid " + T.br,paddingTop:16}}>
-        <div style={{fontSize:12,color:T.mt,letterSpacing:1,marginBottom:10}}>ΥΠΕΝΘΥΜΙΣΕΙΣ</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:14}}>
-          {RTYPES.map(rt => (
-            <button key={rt.id} onClick={() => onAddReminder(rt.id)}
-              style={{padding:"8px 10px",border:"1px solid " + T.br,borderRadius:9,background:T.bg,color:T.tx,fontSize:11,textAlign:"left",cursor:"pointer"}}>
-              {rt.icon} {rt.label}
-            </button>
-          ))}
-        </div>
-        {(av.reminders||[]).length === 0 && <div style={{fontSize:12,color:T.ft,textAlign:"center",padding:10}}>Δεν υπάρχουν υπενθυμίσεις.</div>}
-        {(av.reminders||[]).map(r => {
-          const rs  = rst(r);
-          const rt  = RTYPES.find(x => x.id===r.type);
-          return (
-            <div key={r.id} style={{background:T.bg,borderRadius:11,padding:11,marginBottom:9,border:"1px solid " + (rs?rs.c+"44":T.br)}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                <span style={{fontWeight:700,fontSize:13}}>{r.icon} {r.label}</span>
-                <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                  {rs && <span style={{fontSize:11,color:rs.c,fontWeight:700}}>{rs.l}</span>}
-                  <button onClick={() => onDelReminder(r.id)} style={{background:"none",border:"none",color:T.ft,fontSize:16,cursor:"pointer"}}>x</button>
-                </div>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:rt?.hasDate&&rt?.hasKm?"1fr 1fr":"1fr",gap:8,marginBottom:6}}>
-                {rt?.hasDate && (
-                  <div>
-                    <label style={{...lS,marginBottom:2}}>Ημ/νία λήξης</label>
-                    <input type="date" value={r.dueDate||""} onChange={e => onUpdateReminder(r.id,"dueDate",e.target.value)}
-                      style={{width:"100%",padding:"7px 9px",background:T.inp,border:"1px solid " + T.ib,borderRadius:8,color:T.tx,fontSize:12,boxSizing:"border-box"}}/>
-                  </div>
-                )}
-                {rt?.hasKm && (
-                  <div>
-                    <label style={{...lS,marginBottom:2}}>Σε {dl}</label>
-                    <input type="number" placeholder="π.χ. 40000" value={r.dueKm||""} onChange={e => onUpdateReminder(r.id,"dueKm",e.target.value)}
-                      style={{width:"100%",padding:"7px 9px",background:T.inp,border:"1px solid " + T.ib,borderRadius:8,color:T.tx,fontSize:12,boxSizing:"border-box"}}/>
-                  </div>
-                )}
-              </div>
-              <input placeholder="Σημειώσεις..." value={r.notes||""} onChange={e => onUpdateReminder(r.id,"notes",e.target.value)}
-                style={{width:"100%",padding:"7px 9px",background:T.inp,border:"1px solid " + T.ib,borderRadius:8,color:T.tx,fontSize:12,boxSizing:"border-box"}}/>
+        {/* ══ HOME ══ */}
+        {tab==="home"&&(
+          <div>
+            <div style={{...CS(),marginBottom:12}}>
+              <div style={{fontSize:11,color:T.mt,marginBottom:4}}>ΣΥΝΟΛΙΚΑ ΕΞΟΔΑ · {av.icon} {av.name}</div>
+              <div style={{fontSize:30,fontWeight:"bold",color:"#eab308"}}>{fmt((entries[vid]||[]).reduce((s,x)=>s+(parseFloat(x.total)||0),0)+(expenses[vid]||[]).reduce((s,x)=>s+(parseFloat(x.amount)||0),0))}€</div>
+              {av.info&&av.info.plate&&<div style={{fontSize:11,color:T.mt,marginTop:2}}>{av.info.plate}</div>}
             </div>
-          );
-        })}
-      </div>
-      {/* Delete vehicle */}
-      <div style={{borderTop:"1px solid " + T.br,paddingTop:14,marginTop:6}}>
-        <button onClick={() => { if (window.confirm("Διαγραφή οχήματος και όλων των δεδομένων του;")) onDelete(); }}
-          style={{width:"100%",padding:11,background:"#ef444412",border:"1px solid #ef444444",borderRadius:10,color:"#ef4444",fontSize:13,fontWeight:600,cursor:"pointer"}}>
-          🗑️ Διαγραφή Οχήματος
-        </button>
-      </div>
-    </Modal>
-  );
-}
-
-export default function FuelLog() {
-  const [dark, setDark]   = useState(true);
-  const T = dark ? DK : LT;
-
-  const [vehicles, setVehicles]   = useState([defV()]);
-  const [vid, setVid]             = useState("v1");
-  const [entries, setEntries]     = useState({});
-  const [expenses, setExpenses]   = useState({});
-  const [tab, setTab]             = useState("add");
-  const [modal, setModal]         = useState(null);
-  const [newV, setNewV]           = useState({ name:"", icon:"🚗", category:"car" });
-  const [fY, setFY]               = useState("all");
-  const [fM, setFM]               = useState("all");
-  const [lastFuel, setLastFuel]   = useState({});
-  const [showStPicker, setShowStPicker] = useState(false);
-  const [showFtPicker, setShowFtPicker] = useState(false);
-  const fref = useRef();
-
-  // Persistence
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("fuellog_data");
-      if (saved) {
-        const d = JSON.parse(saved);
-        if (d.vehicles) setVehicles(d.vehicles);
-        if (d.entries)  setEntries(d.entries);
-        if (d.expenses) setExpenses(d.expenses);
-        if (d.lastFuel) setLastFuel(d.lastFuel);
-        if (d.vid)      setVid(d.vid);
-      }
-    } catch(e) {}
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("fuellog_data", JSON.stringify({ vehicles, entries, expenses, lastFuel, vid }));
-    } catch(e) {}
-  }, [vehicles, entries, expenses, lastFuel, vid]);
-
-  const av  = vehicles.find(v => v.id === vid) || vehicles[0];
-  const col = av?.color || "#f97316";
-  const mi  = av?.unitMiles || false;
-  const dl  = mi ? "μίλια" : "km";
-  const lf  = lastFuel[vid] || { fuelType:"unleaded95", stId:"", stLabel:"" };
-
-  const [fuelForm,    setFuelForm]    = useState(() => emptyFuel(lf.fuelType, lf.stId, lf.stLabel));
-  const [expenseForm, setExpenseForm] = useState(emptyExpense);
-
-  const switchVehicle = id => {
-    setVid(id);
-    const lf2 = lastFuel[id] || { fuelType:"unleaded95", stId:"", stLabel:"" };
-    setFuelForm(emptyFuel(lf2.fuelType, lf2.stId, lf2.stLabel));
-  };
-
-  const allFuel    = useMemo(() => (entries[vid]  || []).slice().sort((a,b) => new Date(a.date) - new Date(b.date)), [entries,  vid]);
-  const allExpense = useMemo(() => (expenses[vid] || []).slice().sort((a,b) => new Date(a.date) - new Date(b.date)), [expenses, vid]);
-  const years      = useMemo(() => [...new Set(allFuel.map(e => e.date.slice(0,4)))].sort().reverse(), [allFuel]);
-
-  const filtFuel = useMemo(() => {
-    let f = allFuel;
-    if (fY !== "all") f = f.filter(e => e.date.startsWith(fY));
-    if (fM !== "all") f = f.filter(e => e.date.slice(5,7) === fM);
-    return f;
-  }, [allFuel, fY, fM]);
-
-  const filtExp = useMemo(() => {
-    let f = allExpense;
-    if (fY !== "all") f = f.filter(e => e.date.startsWith(fY));
-    if (fM !== "all") f = f.filter(e => e.date.slice(5,7) === fM);
-    return f;
-  }, [allExpense, fY, fM]);
-
-  const dueR = useMemo(() => (av?.reminders || []).filter(r => r.dueDate && ddiff(r.dueDate) <= 30), [av]);
-
-  const hff = (field, val) => {
-    const u = { ...fuelForm, [field]:val };
-    if (field==="liters" && u.ppl)                 u.total = (parseFloat(val||0)*parseFloat(u.ppl)).toFixed(2);
-    if (field==="ppl"    && u.liters)              u.total = (parseFloat(u.liters)*parseFloat(val||0)).toFixed(2);
-    if (field==="total"  && u.liters && +u.liters) u.ppl   = (parseFloat(val||0)/parseFloat(u.liters)).toFixed(3);
-    if (field==="lpgL"   && u.lpgP)               u.lpgT  = (parseFloat(val||0)*parseFloat(u.lpgP)).toFixed(2);
-    if (field==="lpgP"   && u.lpgL)               u.lpgT  = (parseFloat(u.lpgL)*parseFloat(val||0)).toFixed(2);
-    if (field==="lpgT"   && u.lpgL && +u.lpgL)    u.lpgP  = (parseFloat(val||0)/parseFloat(u.lpgL)).toFixed(3);
-    setFuelForm(u);
-  };
-
-  const submitFuel = () => {
-    if (!fuelForm.date || (!fuelForm.liters && !fuelForm.total)) return;
-    const liters = parseFloat(fuelForm.liters) || null;
-    const total  = parseFloat(fuelForm.total)  || null;
-    const ppl    = parseFloat(fuelForm.ppl) || (liters && total ? total/liters : null);
-    const kmS    = parseFloat(fuelForm.km) || null;
-    setEntries(p => ({ ...p, [vid]:[...(p[vid]||[]), {
-      id:uid(), date:fuelForm.date, fuelType:fuelForm.fuelType, liters, ppl, total,
-      km:kmS, odo:parseFloat(fuelForm.odo)||null, notes:fuelForm.notes,
-      stId:fuelForm.stId, station:fuelForm.stLabel, dual:fuelForm.dual,
-      lpgL:parseFloat(fuelForm.lpgL)||null, lpgP:parseFloat(fuelForm.lpgP)||null, lpgT:parseFloat(fuelForm.lpgT)||null,
-    }]}));
-    setLastFuel(p => ({ ...p, [vid]:{ fuelType:fuelForm.fuelType, stId:fuelForm.stId, stLabel:fuelForm.stLabel } }));
-    setFuelForm(emptyFuel(fuelForm.fuelType, fuelForm.stId, fuelForm.stLabel));
-    setTab("history");
-  };
-
-  const submitExpense = () => {
-    if (!expenseForm.date || !expenseForm.amount) return;
-    const cat   = EXPENSE_CATS.find(c => c.id === expenseForm.catId);
-    const label = expenseForm.catId==="custom" ? (expenseForm.customCat||"Άλλο") : cat?.label||"";
-    setExpenses(p => ({ ...p, [vid]:[...(p[vid]||[]), {
-      id:uid(), date:expenseForm.date, catId:expenseForm.catId, label,
-      amount:parseFloat(expenseForm.amount)||0, notes:expenseForm.notes,
-    }]}));
-    setExpenseForm(emptyExpense());
-  };
-
-  const delFuel    = id => setEntries(p  => ({ ...p, [vid]:p[vid].filter(e => e.id !== id) }));
-  const delExpense = id => setExpenses(p => ({ ...p, [vid]:p[vid].filter(e => e.id !== id) }));
-
-  const addVeh = () => {
-    if (!newV.name.trim()) return;
-    const v = { id:uid(), name:newV.name.trim(), icon:newV.icon, color:FUEL_COLORS[vehicles.length%FUEL_COLORS.length],
-      category:newV.category,
-      info:{ plate:"", chassis:"", brand:"", model:"", year:"", fuelType:"unleaded95", insurance:"", insuranceNo:"", notes:"" },
-      reminders:[], unitMiles:false };
-    setVehicles(p => [...p, v]);
-    switchVehicle(v.id);
-    setNewV({ name:"", icon:"🚗", category:"car" });
-    setModal(null);
-  };
-
-  const updateVehicle = (fields) => setVehicles(p => p.map(x => x.id===vid ? { ...x, ...fields } : x));
-  const upV = (f, v) => setVehicles(p => p.map(x => x.id===vid ? { ...x, [f]:v } : x));
-
-  const deleteVehicle = () => {
-    const remaining = vehicles.filter(v => v.id !== vid);
-    if (remaining.length === 0) return;
-    setVehicles(remaining);
-    setEntries(p  => Object.fromEntries(Object.entries(p).filter(([k]) => k !== vid)));
-    setExpenses(p => Object.fromEntries(Object.entries(p).filter(([k]) => k !== vid)));
-    switchVehicle(remaining[0].id);
-    setModal(null);
-  };
-
-  const addR = type => {
-    const rt = RTYPES.find(r => r.id===type);
-    setVehicles(p => p.map(v => v.id===vid ? { ...v, reminders:[...(v.reminders||[]),
-      { id:uid(), type, label:rt.label, icon:rt.icon, dueDate:"", dueKm:"", notes:"" }] } : v));
-  };
-  const upR  = (rid, f, v) => setVehicles(p => p.map(x => x.id===vid ? { ...x, reminders:x.reminders.map(r => r.id===rid ? { ...r, [f]:v } : r) } : x));
-  const delR = rid => setVehicles(p => p.map(x => x.id===vid ? { ...x, reminders:x.reminders.filter(r => r.id!==rid) } : x));
-
-  const stats = useMemo(() => {
-    if (!filtFuel.length && !filtExp.length) return null;
-    const fuelSpent = filtFuel.reduce((s,x)=>s+(x.total||0),0) + filtFuel.reduce((s,x)=>s+(x.lpgT||0),0);
-    const expSpent  = filtExp.reduce((s,x)=>s+x.amount,0);
-    const tL  = filtFuel.reduce((s,x)=>s+(x.liters||0),0);
-    const wK  = filtFuel.filter(x => x.km && x.liters);
-    const wP  = filtFuel.filter(x => x.ppl);
-    const aC  = wK.length ? wK.reduce((s,x)=>s+(x.liters/x.km*100),0)/wK.length : null;
-    const aP  = wP.length ? wP.reduce((s,x)=>s+x.ppl,0)/wP.length : null;
-    const pr  = wP.map(x=>x.ppl);
-    const sc  = {};
-    filtFuel.forEach(x => { if (x.station) sc[x.station]=(sc[x.station]||0)+1; });
-    const tSt = Object.entries(sc).sort((a,b)=>b[1]-a[1])[0]?.[0];
-    const dE  = filtFuel.filter(x=>x.dual&&x.lpgL&&x.km);
-    const aLC = dE.length ? dE.reduce((s,x)=>s+(x.lpgL/x.km*100),0)/dE.length : null;
-    return { fuelSpent, expSpent, totalSpent:fuelSpent+expSpent, tL, aC, aP,
-      minP:pr.length?Math.min(...pr):null, maxP:pr.length?Math.max(...pr):null, tSt, aLC };
-  }, [filtFuel, filtExp]);
-
-  const cd = useMemo(() => filtFuel.map(x => ({
-    date:  x.date.slice(5),
-    price: x.ppl   ? +(+x.ppl).toFixed(3)                      : null,
-    cons:  x.km && x.liters ? +(x.liters/x.km*100).toFixed(1)  : null,
-    cost:  x.total ? +(+x.total).toFixed(2)                     : null,
-    lpgC:  x.dual && x.lpgL && x.km ? +(x.lpgL/x.km*100).toFixed(1) : null,
-  })), [filtFuel]);
-
-  const exJson = () => {
-    const blob = new Blob([JSON.stringify({ vehicles, entries, expenses, exportedAt:new Date().toISOString() }, null, 2)], { type:"application/json" });
-    const a = document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="fuellog_backup_" + today() + ".json"; a.click();
-  };
-  const exCsv = () => {
-    const rows = allFuel.map(x => [x.date, FTYPES.find(f=>f.id===x.fuelType)?.label||x.fuelType,
-      x.liters||"", x.ppl?fmt(x.ppl,3):"", x.total?fmt(x.total):"",
-      x.km?fmt(x.km,1):"", x.odo||"", x.km&&x.liters?fmt(x.liters/x.km*100,1):"",
-      x.station||"", x.notes||""].map(v => '"' + v + '"').join(","));
-    if (!rows.length) return;
-    const blob = new Blob([["Ημ/νία,Καύσιμο,Λίτρα,Τιμή/L,Σύνολο,km,Odo,L/100,Πρατήριο,Σημ."].concat(rows).join("\n")], { type:"text/csv" });
-    const a = document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="fuellog_" + today() + ".csv"; a.click();
-  };
-  const imJson = ev => {
-    const file = ev.target.files[0]; if (!file) return;
-    const r = new FileReader();
-    r.onload = e => {
-      try {
-        const d = JSON.parse(e.target.result);
-        if (d.vehicles && d.entries) { setVehicles(d.vehicles); setEntries(d.entries); setExpenses(d.expenses||{}); switchVehicle(d.vehicles[0]?.id); alert("Εισαγωγή OK"); }
-        else alert("Μη έγκυρο αρχείο.");
-      } catch(err) { alert("Σφάλμα."); }
-    };
-    r.readAsText(file); ev.target.value="";
-  };
-
-  const loadDemo = () => {
-    const demoFuel = [
-      {id:uid(),date:"2025-09-05",fuelType:"unleaded95",liters:42,ppl:1.789,total:75.14,km:480,odo:51200,notes:"Πλήρες",stId:"shell",station:"Shell"},
-      {id:uid(),date:"2025-10-08",fuelType:"unleaded98",liters:40,ppl:1.949,total:77.96,km:460,odo:52090,notes:"Αυτοκινητόδρομος",stId:"eko",station:"ΕΚΟ"},
-      {id:uid(),date:"2025-11-14",fuelType:"unleaded95",liters:38,ppl:1.829,total:69.50,km:430,odo:52975,notes:"",stId:"avin",station:"Avin"},
-      {id:uid(),date:"2025-12-20",fuelType:"diesel",liters:50,ppl:1.699,total:84.95,km:510,odo:54000,notes:"",stId:"bp",station:"BP"},
-      {id:uid(),date:"2026-01-15",fuelType:"unleaded95",liters:40,ppl:1.849,total:73.96,km:450,odo:55035,notes:"",stId:"avin",station:"Avin"},
-      {id:uid(),date:"2026-02-10",fuelType:"unleaded95",liters:41,ppl:1.869,total:76.63,km:470,odo:56200,notes:"",stId:"shell",station:"Shell"},
-    ];
-    setEntries(p => ({ ...p, [vid]:demoFuel }));
-    setTab("stats");
-  };
-
-  const iS  = (on) => ({ width:"100%", padding:"10px 12px", background:T.inp, border:"1px solid " + (on ? col+"99" : T.ib), borderRadius:10, color:T.tx, fontSize:14, boxSizing:"border-box", outline:"none" });
-  const lS  = { display:"block", fontSize:11, color:T.mt, letterSpacing:1, marginBottom:4 };
-  const curSt    = STATIONS.find(s => s.id === fuelForm.stId);
-  const prevCons = (fuelForm.km && fuelForm.liters) ? (parseFloat(fuelForm.liters)/parseFloat(fuelForm.km)*100).toFixed(1) : null;
-  const showPrev = !!(fuelForm.liters || fuelForm.ppl || fuelForm.total || fuelForm.km);
-
-  const FBar = () => (
-    <div style={{display:"flex",gap:8,marginBottom:14}}>
-      <select value={fY} onChange={e => setFY(e.target.value)} style={{padding:"8px 10px",background:T.inp,border:"1px solid " + col + "44",borderRadius:9,color:T.tx,fontSize:13,flex:1}}>
-        <option value="all">Όλα τα χρόνια</option>
-        {years.map(y => <option key={y} value={y}>{y}</option>)}
-      </select>
-      <select value={fM} onChange={e => setFM(e.target.value)} style={{padding:"8px 10px",background:T.inp,border:"1px solid " + col + "44",borderRadius:9,color:T.tx,fontSize:13,flex:1}}>
-        <option value="all">Όλοι οι μήνες</option>
-        {MONTHS.map((m, i) => <option key={i} value={String(i+1).padStart(2,"0")}>{m}</option>)}
-      </select>
-    </div>
-  );
-
-  return (
-    <div style={{fontFamily:"system-ui,sans-serif",minHeight:"100vh",background:T.bg,color:T.tx,maxWidth:480,margin:"0 auto"}}>
-
-      {/* HEADER */}
-      <div style={{background:"linear-gradient(135deg," + col + "20," + T.bg + ")",borderBottom:"1px solid " + col + "30",padding:"14px 14px 0"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <span style={{fontSize:26}}>⛽</span>
-            <div>
-              <div style={{fontSize:19,fontWeight:700,color:T.tx}}>FuelLog</div>
-              <div style={{fontSize:10,color:T.mt,letterSpacing:1}}>ΠΑΡΑΚΟΛΟΥΘΗΣΗ ΚΑΥΣΙΜΩΝ</div>
-            </div>
-          </div>
-          <div style={{display:"flex",gap:5,alignItems:"center"}}>
-            <button onClick={() => setDark(!dark)} style={{padding:"6px 10px",background:T.sf,border:"1px solid " + T.br,borderRadius:9,cursor:"pointer"}}>{dark?"☀️":"🌙"}</button>
-            {dueR.length > 0 && (
-              <button onClick={() => setModal("vi")} style={{padding:"6px 9px",background:"#ef444422",border:"1px solid #ef4444",borderRadius:9,color:"#ef4444",fontSize:12,fontWeight:700,cursor:"pointer"}}>{"🔔" + dueR.length}</button>
-            )}
-            <button onClick={() => setModal("vi")}  style={{padding:"6px 10px",background:T.sf,border:"1px solid " + col + "44",borderRadius:9,color:col,cursor:"pointer"}}>📋</button>
-            <button onClick={() => setModal("bk")}  style={{padding:"6px 10px",background:T.sf,border:"1px solid " + T.br,borderRadius:9,color:"#10b981",cursor:"pointer"}}>☁️</button>
-          </div>
-        </div>
-
-        <div style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:2}}>
-          {vehicles.map(v => (
-            <button key={v.id} onClick={() => switchVehicle(v.id)} style={{
-              padding:"7px 11px",borderRadius:"9px 9px 0 0",border:"none",
-              background:vid===v.id?T.sf:"transparent",color:vid===v.id?v.color:T.ft,
-              fontWeight:vid===v.id?700:400,fontSize:12,whiteSpace:"nowrap",cursor:"pointer",
-              borderBottom:vid===v.id?"2px solid " + v.color:"2px solid transparent",
-            }}>{v.icon} {v.name}</button>
-          ))}
-          <button onClick={() => setModal("av")} style={{padding:"7px 10px",background:"transparent",border:"none",color:T.ft,fontSize:18,cursor:"pointer"}}>+</button>
-        </div>
-      </div>
-
-      {/* MAIN */}
-      <div style={{background:T.sf,padding:"0 14px 80px",minHeight:"70vh"}}>
-        <div style={{display:"flex",borderBottom:"1px solid " + T.br,marginBottom:16}}>
-          {[["add","⛽ Καύσιμα","#ff5500"],["expenses","💸 Έξοδα","#00cc66"],["stats","📊 Στατιστικά","#0088ff"],["history","📋 Ιστορικό","#aa44ff"]].map(([id, lb, tc]) => (
-            <button key={id} onClick={() => setTab(id)} style={{flex:1,padding:"12px 4px",border:"none",
-              background:tab===id?tc+"28":"transparent",
-              color:tab===id?tc:T.mt,fontWeight:tab===id?700:400,fontSize:11,cursor:"pointer",
-              borderBottom:"3px solid " + (tab===id?tc:"transparent"),marginBottom:-1,whiteSpace:"nowrap"}}>{lb}</button>
-          ))}
-        </div>
-
-        {/* TAB: ADD FUEL */}
-        {tab==="add" && (
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-
-            {/* Live Preview */}
-            {showPrev && (
-              <div style={{background:"linear-gradient(135deg," + col + "22," + col + "06)",border:"1px solid " + col + "44",borderRadius:14,padding:13}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <span style={{fontSize:11,color:T.mt,letterSpacing:1}}>ΠΡΟΕΠΙΣΚΟΠΗΣΗ</span>
-                  <FtBadge ftId={fuelForm.fuelType} size={12}/>
+            {showInstallBanner&&!isStandalone&&(
+              <div style={{background:dark?"#1a1a10":"#fff8e7",border:`1px solid ${col}`,borderRadius:14,padding:"12px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:12}}>
+                <span style={{fontSize:28}}>📲</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:"bold",color:col}}>Εγκατέστησε το FuelLog!</div>
+                  {isIOS?<div style={{fontSize:11,color:T.mt}}>Πάτα <b>Share</b> → <b>"Add to Home Screen"</b> για offline χρήση</div>:<div style={{fontSize:11,color:T.mt}}>Γρήγορη πρόσβαση &amp; χρήση χωρίς internet</div>}
                 </div>
-                <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
-                  {fuelForm.liters && <div><div style={{fontSize:10,color:T.mt}}>ΛΙΤΡΑ</div><div style={{fontSize:18,fontWeight:700,color:col}}>{fuelForm.liters}L</div></div>}
-                  {fuelForm.ppl    && <div><div style={{fontSize:10,color:T.mt}}>ΤΙΜΗ/L</div><div style={{fontSize:18,fontWeight:700,color:col}}>€{fuelForm.ppl}</div></div>}
-                  {fuelForm.total  && <div><div style={{fontSize:10,color:T.mt}}>ΣΥΝΟΛΟ</div><div style={{fontSize:18,fontWeight:700,color:col}}>€{fuelForm.total}</div></div>}
-                  {prevCons        && <div><div style={{fontSize:10,color:T.mt}}>ΚΑΤΑΝΑΛΩΣΗ</div><div style={{fontSize:18,fontWeight:700,color:"#10b981"}}>{prevCons}L/100</div></div>}
-                </div>
+                {!isIOS&&<button onClick={handleInstall} style={{padding:"7px 12px",background:col,color:"#fff",border:"none",borderRadius:8,fontWeight:"bold",fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>Εγκατάσταση</button>}
+                <button onClick={()=>setShowInstallBanner(false)} style={{border:"none",background:"none",color:T.mt,fontSize:20,cursor:"pointer",lineHeight:1,padding:4}}>✕</button>
               </div>
             )}
-
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              <div>
-                <label style={lS}>ΗΜΕΡΟΜΗΝΙΑ</label>
-                <input type="date" value={fuelForm.date} onChange={e => hff("date", e.target.value)} style={iS(true)}/>
-              </div>
-              <div>
-                <label style={lS}>ΚΑΥΣΙΜΟ</label>
-                <button onClick={() => setShowFtPicker(true)} style={{...iS(false), textAlign:"left", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"space-between"}}>
-                  <FtBadge ftId={fuelForm.fuelType} size={13}/>
-                  <span style={{color:T.mt,fontSize:11}}>▼</span>
-                </button>
-              </div>
-            </div>
-
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              <div><label style={lS}>ΛΙΤΡΑ</label><input type="number" step="any" placeholder="π.χ. 40" value={fuelForm.liters} onChange={e => hff("liters", e.target.value)} style={iS(!!fuelForm.liters)}/></div>
-              <div><label style={lS}>ΤΙΜΗ/L €</label><input type="number" step="any" placeholder="π.χ. 1.789" value={fuelForm.ppl} onChange={e => hff("ppl", e.target.value)} style={iS(!!fuelForm.ppl)}/></div>
-            </div>
-
-            <div>
-              <label style={lS}>ΣΥΝΟΛΟ €</label>
-              <input type="number" step="any" placeholder="π.χ. 71.56" value={fuelForm.total} onChange={e => hff("total", e.target.value)} style={iS(!!fuelForm.total)}/>
-            </div>
-
-            {/* LPG section */}
-            {fuelForm.dual && (
-              <div style={{background:T.bg,borderRadius:12,padding:12,border:"2px solid #a78bfa44"}}>
-                <div style={{fontSize:11,color:"#a78bfa",letterSpacing:1,marginBottom:10}}>ΥΓΡΑΕΡΙΟ LPG</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-                  <div><label style={lS}>ΛΙΤΡΑ LPG</label><input type="number" step="any" value={fuelForm.lpgL} onChange={e => hff("lpgL",e.target.value)} style={iS(!!fuelForm.lpgL)}/></div>
-                  <div><label style={lS}>ΤΙΜΗ/L €</label><input type="number" step="any" value={fuelForm.lpgP} onChange={e => hff("lpgP",e.target.value)} style={iS(!!fuelForm.lpgP)}/></div>
+            {needBackup&&(
+              <div style={{background:dark?"#101a24":"#e6f0fb",border:"1px solid #3b82f6",borderRadius:14,padding:"12px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:12}}>
+                <span style={{fontSize:26}}>💾</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:"bold",color:"#3b82f6"}}>Κάνε αντίγραφο ασφαλείας</div>
+                  <div style={{fontSize:11,color:T.mt}}>{backupAge===null?"Δεν έχεις κατεβάσει ποτέ αντίγραφο.":`Το τελευταίο ήταν πριν ${backupAge} μέρες.`} Τα δεδομένα μένουν μόνο σε αυτό το κινητό.</div>
                 </div>
-                <div><label style={lS}>ΣΥΝΟΛΟ LPG €</label><input type="number" step="any" value={fuelForm.lpgT} onChange={e => hff("lpgT",e.target.value)} style={iS(!!fuelForm.lpgT)}/></div>
+                <button onClick={exportJSON} style={{padding:"7px 12px",background:"#3b82f6",color:"#fff",border:"none",borderRadius:8,fontWeight:"bold",fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>Λήψη JSON</button>
+                <button onClick={()=>setHideBackup(true)} style={{border:"none",background:"none",color:T.mt,fontSize:20,cursor:"pointer",lineHeight:1,padding:4}}>✕</button>
               </div>
             )}
-
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              <div>
-                <label style={lS}>{"ΔΙΑΝΥΘΕΝΤΑ " + dl.toUpperCase()}</label>
-                <input type="number" placeholder={mi?"π.χ. 280":"π.χ. 450"} value={fuelForm.km} onChange={e => hff("km", e.target.value)} style={iS(!!fuelForm.km)}/>
+            {reminders.length>0&&(
+              <div style={{marginBottom:14}}>
+                <div style={{fontSize:12,fontWeight:"bold",color:"#eab308",marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
+                  🔔 Υπενθυμίσεις <span style={{background:"#e11d48",color:"#fff",fontSize:10,fontWeight:"bold",padding:"1px 7px",borderRadius:10}}>{reminders.length}</span>
+                </div>
+                {reminders.map((r,i)=>{
+                  const bgC=r.expired?"#2a0a0a":r.urgent?"#2a1200":dark?"#1a1a10":"#fdf3d0";
+                  const bC=r.expired?"#e11d48":r.urgent?"#f97316":"#eab308";
+                  const tC=r.expired?"#ef4444":r.urgent?"#f97316":"#eab308";
+                  const st=r.isKm?(r.expired?`⚠️ Πέρασες το όριο κατά ${Math.abs(Math.round(r.kmLeft)).toLocaleString()} χλμ`:`⏰ Σε ${Math.round(r.kmLeft).toLocaleString()} χλμ`):r.expired?`⚠️ Έληξε πριν ${Math.abs(r.days)} μέρες`:r.days===0?"⚠️ Λήγει ΣΗΜΕΡΑ":`⏰ Λήγει σε ${r.days} μέρες`;
+                  return(
+                    <div key={i} onClick={()=>{setVid(r.vid);setShowVInfo(true);}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",borderRadius:10,marginBottom:6,cursor:"pointer",background:bgC,border:`1px solid ${bC}`}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                        <span style={{fontSize:22}}>{r.icon}</span>
+                        <div><div style={{fontSize:13,fontWeight:"bold",color:tC}}>{r.label}</div><div style={{fontSize:11,color:T.mt}}>{r.vIcon} {r.vName} · {r.isKm?`όριο ${Number(r.date).toLocaleString()} χλμ`:formatDate(r.date)}</div></div>
+                      </div>
+                      <div style={{textAlign:"right"}}><div style={{fontSize:11,fontWeight:"bold",color:tC}}>{st}</div><div style={{fontSize:10,color:T.mt}}>→ Αρχείο</div></div>
+                    </div>
+                  );
+                })}
               </div>
-              <div>
-                <label style={lS}>ΧΙΛΙΟΜΕΤΡΗΤΗΣ</label>
-                <input type="number" placeholder="π.χ. 52300" value={fuelForm.odo} onChange={e => hff("odo", e.target.value)} style={iS(!!fuelForm.odo)}/>
+            )}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div onClick={()=>{setMovFilter("fuel");setTab("history");}} style={{...CS({cursor:"pointer",borderLeft:`3px solid #3b82f6`})}}>
+                <div style={{fontSize:10,color:T.mt}}>⛽ ΓΕΜΙΣΜΑΤΑ</div>
+                <div style={{fontSize:26,fontWeight:"bold",color:"#3b82f6"}}>{(entries[vid]||[]).length}</div>
+                <div style={{fontSize:10,color:col,marginTop:6}}>→ Κινήσεις</div>
+              </div>
+              <div onClick={()=>{setMovFilter("exp");setTab("history");}} style={{...CS({cursor:"pointer",borderLeft:`3px solid #e11d48`})}}>
+                <div style={{fontSize:10,color:T.mt}}>📋 ΕΞΟΔΑ</div>
+                <div style={{fontSize:26,fontWeight:"bold",color:"#e11d48"}}>{(expenses[vid]||[]).length}</div>
+                <div style={{fontSize:10,color:col,marginTop:6}}>→ Κινήσεις</div>
               </div>
             </div>
-
-            {/* Station button */}
-            <div>
-              <label style={lS}>ΠΡΑΤΗΡΙΟ</label>
-              <button onClick={() => setShowStPicker(true)} style={{...iS(!!fuelForm.stId), textAlign:"left", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"space-between"}}>
-                {fuelForm.stLabel
-                  ? <span style={{fontWeight:700,background:curSt?curSt.bg:"#555",color:curSt?curSt.fg:"#fff",padding:"2px 10px",borderRadius:6,fontSize:13}}>{fuelForm.stLabel}</span>
-                  : <span style={{color:T.ft}}>Επίλεξε πρατήριο...</span>
-                }
-                <span style={{color:T.mt,fontSize:11}}>▼</span>
-              </button>
-            </div>
-
-            <div>
-              <label style={lS}>ΣΗΜΕΙΩΣΕΙΣ</label>
-              <input type="text" placeholder="π.χ. Full tank..." value={fuelForm.notes} onChange={e => hff("notes",e.target.value)} style={iS(!!fuelForm.notes)}/>
-            </div>
-
-            {/* Dual fuel toggle */}
-            <button onClick={() => hff("dual", !fuelForm.dual)}
-              style={{padding:"10px 14px",border:"1px solid " + (fuelForm.dual?"#a78bfa":T.br),borderRadius:10,
-                background:fuelForm.dual?"#a78bfa22":"transparent",color:fuelForm.dual?"#a78bfa":T.mt,
-                fontSize:12,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:8}}>
-              🔘 Διπλή κατανάλωση (+ LPG)
-              {fuelForm.dual && <span style={{marginLeft:"auto",fontSize:11,background:"#a78bfa",color:"#fff",padding:"1px 8px",borderRadius:5}}>ON</span>}
-            </button>
-
-            <button onClick={submitFuel} style={{padding:16,background:col,color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer"}}>
-              ⛽ ΠΡΟΣΘΗΚΗ ΚΑΥΣΙΜΟΥ
-            </button>
           </div>
         )}
 
-        {/* TAB: EXPENSES */}
-        {tab==="expenses" && (
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              <div><label style={lS}>ΗΜΕΡΟΜΗΝΙΑ</label><input type="date" value={expenseForm.date} onChange={e=>setExpenseForm({...expenseForm, date:e.target.value})} style={iS(true)}/></div>
-              <div><label style={lS}>ΠΟΣΟ €</label><input type="number" step="any" value={expenseForm.amount} onChange={e=>setExpenseForm({...expenseForm, amount:e.target.value})} style={iS(!!expenseForm.amount)}/></div>
+        {/* ══ FUEL ══ */}
+        {tab==="fuel"&&(
+          <div style={CS({border:`2px solid ${col}`})}>
+            <h3 style={{marginTop:0,fontSize:16}}>⛽ Νέο Γέμισμα</h3>
+            <input type="date" value={fuelForm.date} onChange={e=>setFuelForm({...fuelForm,date:e.target.value})} style={IS}/>
+            <select value={fuelForm.fuelType} onChange={e=>setFuelForm({...fuelForm,fuelType:e.target.value})} style={IS}>
+              {vFuelTypes.map(f=><option key={f.id} value={f.id}>{f.icon} {f.label}</option>)}
+            </select>
+            <input type="number" step="0.001" placeholder="⬡  Τιμή €/λίτρο" value={fuelForm.ppl} onChange={e=>setFuelForm({...fuelForm,ppl:e.target.value})} style={IS}/>
+            <input type="number" step="0.01" placeholder="💶  Συνολικό Ποσό €" value={fuelForm.total} onChange={e=>setFuelForm({...fuelForm,total:e.target.value})} style={IS}/>
+            {parseFloat(fuelForm.ppl)>0&&parseFloat(fuelForm.total)>0&&(
+              <div style={{background:dark?"#0d2010":"#d4eed8",color:"#10b981",padding:"9px 14px",borderRadius:8,marginBottom:10,fontSize:13,border:"1px solid #10b981"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span>🧮 <b>{+(parseFloat(fuelForm.total)/parseFloat(fuelForm.ppl)).toFixed(2)}</b> λίτρα</span>
+                  <span style={{fontSize:11,opacity:0.8}}>{fmt(parseFloat(fuelForm.ppl),3)} €/L</span>
+                </div>
+                {(()=>{
+                  const prevE=allFuel.length>0?allFuel[allFuel.length-1]:null;
+                  const curOdo=parseFloat(fuelForm.odo),prevOdo=prevE?parseFloat(prevE.odo):null;
+                  const liters=parseFloat(fuelForm.total)/parseFloat(fuelForm.ppl);
+                  if(curOdo>0&&prevOdo>0&&curOdo>prevOdo&&liters>0){
+                    const cons=(liters/(curOdo-prevOdo)*100).toFixed(1),diffKm=curOdo-prevOdo;
+                    return<div style={{marginTop:6,paddingTop:6,borderTop:"1px solid #10b98140",display:"flex",justifyContent:"space-between"}}><span style={{fontSize:11}}>📍 {diffKm} χλμ</span><span style={{fontSize:12,fontWeight:"bold"}}>{cons} L/100km</span></div>;
+                  }return null;
+                })()}
+              </div>
+            )}
+            <input type="number" placeholder="🔢  Odometer (Συνολικά χλμ)" value={fuelForm.odo} onChange={e=>setFuelForm({...fuelForm,odo:e.target.value})} style={IS}/>
+            <input type="text" placeholder="📝  Σημειώσεις (προαιρετικό)" value={fuelForm.notes} onChange={e=>setFuelForm({...fuelForm,notes:e.target.value})} style={IS}/>
+            <button onClick={handleAddFuel} style={{width:"100%",padding:15,background:col,color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:16,cursor:"pointer"}}>ΑΠΟΘΗΚΕΥΣΗ</button>
+          </div>
+        )}
+
+        {/* ══ EXPENSES ══ */}
+        {tab==="expenses"&&(
+          <div>
+            <div style={{...CS({border:`2px solid ${col}`}),marginBottom:16}}>
+              <h3 style={{margin:"0 0 12px",fontSize:15}}>➕ Νέο Έξοδο</h3>
+              <input type="date" value={expForm.date} onChange={e=>setExpForm({...expForm,date:e.target.value})} style={IS}/>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginBottom:10}}>
+                {EXPENSE_CATS.map(cat=>(
+                  <div key={cat.id} onClick={()=>setExpForm({...expForm,category:cat.id,label:""})}
+                    style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"10px 4px",borderRadius:10,cursor:"pointer",
+                      background:expForm.category===cat.id?col:T.bg,
+                      border:`2px solid ${expForm.category===cat.id?col:T.br}`,
+                      transition:"all 0.15s"}}>
+                    <span style={{fontSize:22}}>{cat.icon}</span>
+                    <span style={{fontSize:9,fontWeight:"bold",textAlign:"center",lineHeight:1.2,color:expForm.category===cat.id?"#fff":T.tx}}>{cat.label}</span>
+                  </div>
+                ))}
+              </div>
+              <input type="text" placeholder="Περιγραφή / Τοποθεσία (προαιρετικό)" value={expForm.label} onChange={e=>setExpForm({...expForm,label:e.target.value})} style={IS}/>
+              <input type="number" step="0.01" placeholder="Ποσό €" value={expForm.amount} onChange={e=>setExpForm({...expForm,amount:e.target.value})} style={{...IS,fontSize:20,fontWeight:"bold",textAlign:"center"}}/>
+              <button onClick={handleAddExp} style={{width:"100%",padding:13,background:col,color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:15,cursor:"pointer"}}>✅ ΑΠΟΘΗΚΕΥΣΗ</button>
             </div>
-            <div>
-              <label style={lS}>ΚΑΤΗΓΟΡΙΑ</label>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(90px,1fr))",gap:7}}>
-                {EXPENSE_CATS.map(c => (
-                  <button key={c.id} onClick={()=>setExpenseForm({...expenseForm, catId:c.id})}
-                    style={{padding:"8px 4px",borderRadius:8,border:"1px solid "+(expenseForm.catId===c.id?col:T.br),
-                      background:expenseForm.catId===c.id?col+"22":"transparent",
-                      color:expenseForm.catId===c.id?col:T.mt,fontSize:11,cursor:"pointer",textAlign:"center"}}>
-                    <div style={{fontSize:18}}>{c.icon}</div>
-                    <div style={{fontSize:10,marginTop:2}}>{c.label}</div>
+
+            {/* Category filter chips */}
+            {allExp.length>0&&(
+              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+                <button onClick={()=>setExpCatFilter("all")} style={{padding:"5px 10px",borderRadius:16,border:"none",cursor:"pointer",fontSize:11,fontWeight:"bold",background:expCatFilter==="all"?col:T.br,color:expCatFilter==="all"?"#fff":T.mt}}>Όλα</button>
+                {EXPENSE_CATS.filter(c=>(expenses[vid]||[]).some(e=>e.category===c.id)).map(c=>(
+                  <button key={c.id} onClick={()=>setExpCatFilter(expCatFilter===c.id?"all":c.id)}
+                    style={{padding:"5px 10px",borderRadius:16,border:"none",cursor:"pointer",fontSize:11,fontWeight:"bold",
+                      background:expCatFilter===c.id?col:T.br,color:expCatFilter===c.id?"#fff":T.mt}}>
+                    {c.icon} {c.label}
                   </button>
                 ))}
               </div>
-            </div>
-            {expenseForm.catId==="custom" && (
-              <div>
-                <label style={lS}>ΠΕΡΙΓΡΑΦΗ</label>
-                <input placeholder="π.χ. Μπαταρία..." value={expenseForm.customCat||""} onChange={e=>setExpenseForm({...expenseForm,customCat:e.target.value})} style={iS(true)}/>
-              </div>
             )}
-            <div>
-              <label style={lS}>ΣΗΜΕΙΩΣΕΙΣ</label>
-              <input type="text" placeholder="π.χ. Castrol 5W40..." value={expenseForm.notes} onChange={e=>setExpenseForm({...expenseForm,notes:e.target.value})} style={iS(false)}/>
-            </div>
-            <button onClick={submitExpense} style={{padding:14,background:"#10b981",color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer"}}>
-              💸 ΠΡΟΣΘΗΚΗ ΕΞΟΔΟΥ
-            </button>
-            <div style={{marginTop:8}}>
-              {allExpense.slice().reverse().map(ex => {
-                const cat = EXPENSE_CATS.find(c => c.id===ex.catId);
-                return (
-                  <div key={ex.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid "+T.br}}>
-                    <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <span style={{fontSize:20}}>{cat?.icon||"💸"}</span>
-                      <div>
-                        <div style={{fontSize:13,fontWeight:600,color:T.tx}}>{ex.label}</div>
-                        <div style={{fontSize:11,color:T.mt}}>{ex.date}{ex.notes?" · "+ex.notes:""}</div>
-                      </div>
-                    </div>
-                    <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <span style={{fontWeight:700,color:"#ef4444"}}>-€{ex.amount}</span>
-                      <button onClick={()=>delExpense(ex.id)} style={{background:"none",border:"none",color:T.ft,cursor:"pointer"}}>x</button>
-                    </div>
+
+            {expByMonth.length===0&&<div style={{textAlign:"center",color:T.mt,padding:30}}>Δεν υπάρχουν έξοδα ακόμα.</div>}
+
+            {expByMonth.map(({key,label,entries:me,total,byCategory})=>{
+              const filtMe=expCatFilter==="all"?me:me.filter(e=>e.category===expCatFilter);
+              if(!filtMe.length)return null;
+              const filtTotal=filtMe.reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
+              return(
+                <MonthGroup key={key} monthKey={key} label={label} badge={`${filtMe.length} εγγρ.`} total={`-${fmt(filtTotal)}€`} isOpen={!!openExpM[key]} onToggle={()=>setOpenExpM(p=>({...p,[key]:!p[key]}))} T={T}>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:6,padding:"8px 12px",background:T.bg,borderBottom:`1px solid ${T.ft}`}}>
+                    {Object.entries(byCategory).filter(([catId])=>expCatFilter==="all"||catId===expCatFilter).map(([catId,amt])=>{
+                      const cat=EXPENSE_CATS.find(c=>c.id===catId);
+                      return(
+                        <div key={catId} style={{background:T.sf,borderRadius:8,padding:"4px 8px",fontSize:11,display:"flex",alignItems:"center",gap:4}}>
+                          <span>{cat&&cat.icon||"💸"}</span>
+                          <span style={{color:T.mt}}>{cat&&cat.label||catId}</span>
+                          <span style={{fontWeight:"bold",color:"#e07b54"}}>{fmt(amt)}€</span>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
+                  {filtMe.slice().reverse().map((e,i)=>(
+                    <ExpenseEntryRow key={e.id} e={e} i={i} total={filtMe.length} T={T} onEdit={setEditExpE} onDel={handleDelExp}/>
+                  ))}
+                </MonthGroup>
+              );
+            })}
           </div>
         )}
 
-        {/* TAB: STATS */}
-        {tab==="stats" && (
+        {/* ══ STATS ══ */}
+        {tab==="stats"&&(
           <div>
-            <FBar/>
-            {!stats ? (
-              <div style={{textAlign:"center",padding:"60px 20px",color:T.ft}}>
-                <div style={{fontSize:48,marginBottom:12}}>📊</div>
-                <div style={{marginBottom:16}}>Δεν υπάρχουν δεδομένα ακόμα.</div>
-                <button onClick={loadDemo} style={{padding:"10px 20px",background:T.br,color:T.tx,border:"none",borderRadius:9,fontSize:13,cursor:"pointer"}}>Φόρτωση demo δεδομένων</button>
-              </div>
-            ) : (
-              <div>
-                {/* Gradient stat cards */}
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-                  {[
-                    ["💰","Συνολικά έξοδα", stats.totalSpent?fmt(stats.totalSpent)+"€":"—", null],
-                    ["⛽","Καύσιμα",         stats.fuelSpent ?fmt(stats.fuelSpent)+"€" :"—", "↑"],
-                    ["🔥","Μέση κατανάλωση",stats.aC        ?fmt(stats.aC,1)+"L/100"  :"—", "↓"],
-                    ["📈","Μέση τιμή/L",     stats.aP        ?fmt(stats.aP,3)+"€"      :"—", "↑"],
-                    ["🔧","Άλλα έξοδα",     stats.expSpent  ?fmt(stats.expSpent)+"€"  :"—", null],
-                    ["⛽","Συνολικά λίτρα",  stats.tL        ?fmt(stats.tL,1)+"L"      :"—", "↑"],
-                  ].map(([ic, lb, val, trend], i) => {
-                    const gc = GRAD_COLS[i];
-                    const trendColor = trend==="↑" ? "#ef4444" : "#10b981";
-                    return (
-                      <div key={lb} style={{borderRadius:13,padding:13,position:"relative",overflow:"hidden",
-                        background:"linear-gradient(135deg," + gc + "28," + gc + "06)",border:"1px solid " + gc + "44"}}>
-                        <div style={{fontSize:18,marginBottom:4}}>{ic}</div>
-                        <div style={{fontSize:17,fontWeight:700,color:T.tx}}>{val}</div>
-                        <div style={{fontSize:11,color:T.mt,marginTop:2}}>{lb}</div>
-                        {trend && <div style={{position:"absolute",top:10,right:10,fontSize:13,fontWeight:700,color:trendColor}}>{trend}</div>}
-                      </div>
-                    );
-                  })}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+              <select value={fY} onChange={e=>setFY(e.target.value)} style={IS}>
+                <option value="all">Όλα τα έτη</option>
+                {availYears.map(y=><option key={y} value={y}>{y}</option>)}
+              </select>
+              <select value={fM} onChange={e=>setFM(e.target.value)} style={IS}>
+                <option value="all">Όλοι οι μήνες</option>
+                {MONTHS_SHORT.map((m,i)=><option key={m} value={String(i+1).padStart(2,"0")}>{m}</option>)}
+              </select>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+              {[{label:"ΣΥΝΟΛΙΚΑ ΕΞΟΔΑ",v:fmt(stats.totalSpent)+"€",color:"#eab308"},{label:"ΚΑΥΣΙΜΑ",v:fmt(stats.fuelSpent)+"€",color:"#3b82f6"},{label:"ΑΛΛΑ ΕΞΟΔΑ",v:fmt(stats.expSpent)+"€",color:"#e11d48"},{label:"ΣΥΝΟΛΟ ΛΙΤΡΩΝ",v:fmt(stats.tL)+" L",color:"#10b981"}].map(({label,v,color})=>(
+                <div key={label} style={CS()}><div style={{fontSize:9,color:T.mt,marginBottom:3}}>{label}</div><div style={{fontSize:18,fontWeight:"bold",color}}>{v}</div></div>
+              ))}
+            </div>
+            <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
+              <div style={{width:"100%",maxWidth:380,display:"flex",alignItems:"center",overflow:"visible"}}>
+                <div style={{flex:"0 0 55%",zIndex:2,filter:"drop-shadow(3px 0 10px #10b98150)"}}>
+                  <RoundCyberGauge value={stats.aC} min={gaugeRanges.consMin} max={gaugeRanges.consMax} color="#10b981" label="ΜΕΣΗ ΚΑΤΑΝΑΛΩΣΗ" unit="L/100km" T={T}/>
                 </div>
-
-                {stats.aLC && (
-                  <div style={{background:T.bg,borderRadius:13,padding:13,marginBottom:12,border:"2px solid #a78bfa44"}}>
-                    <div style={{fontSize:11,color:"#a78bfa",letterSpacing:1,marginBottom:6}}>ΔΙΠΛΗ ΚΑΤΑΝΑΛΩΣΗ</div>
-                    <div style={{display:"flex",gap:24}}>
-                      <div><div style={{fontSize:11,color:T.mt}}>Βενζίνη</div><div style={{fontSize:15,fontWeight:700,color:col}}>{fmt(stats.aC,1)} L/100</div></div>
-                      <div><div style={{fontSize:11,color:T.mt}}>LPG</div><div style={{fontSize:15,fontWeight:700,color:"#a78bfa"}}>{fmt(stats.aLC,1)} L/100</div></div>
-                    </div>
-                  </div>
-                )}
-
-                {stats.minP && (
-                  <div style={{background:T.bg,borderRadius:13,padding:13,marginBottom:14,border:"1px solid " + T.br,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <div><div style={{fontSize:11,color:T.mt}}>MIN €/L</div><div style={{fontSize:15,fontWeight:700,color:"#10b981"}}>{fmt(stats.minP,3)}€</div></div>
-                    {stats.tSt && <div style={{textAlign:"center"}}><div style={{fontSize:11,color:T.mt}}>TOP ΠΡΑΤΗΡΙΟ</div><div style={{fontSize:12,fontWeight:700,color:"#a78bfa"}}>{stats.tSt}</div></div>}
-                    <div style={{textAlign:"right"}}><div style={{fontSize:11,color:T.mt}}>MAX €/L</div><div style={{fontSize:15,fontWeight:700,color:"#ef4444"}}>{fmt(stats.maxP,3)}€</div></div>
-                  </div>
-                )}
-
-                <ChartBlock title="ΤΙΜΗ €/L"       data={cd} dk="price" color={col}     type="line" T={T}/>
-                <ChartBlock title="ΕΞΟΔΑ/ΓΕΜΙΣΜΑ" data={cd} dk="cost"  color={col}     type="bar"  T={T}/>
-
-                {/* Gauges */}
-                {(stats.aC != null || stats.aP != null) && (
-                  <div style={{background:T.bg,borderRadius:13,padding:"14px 8px 8px",border:"1px solid " + T.br,marginBottom:14}}>
-                    <div style={{fontSize:11,color:T.mt,letterSpacing:1,marginBottom:8,paddingLeft:6}}>ΚΟΝΤΕΡ</div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                      {stats.aC != null && <Gauge value={stats.aC} min={4} max={20} color="#10b981" label="ΚΑΤΑΝΑΛΩΣΗ" unit="L/100km" T={T}/>}
-                      {stats.aP != null && <Gauge value={stats.aP} min={1.4} max={2.4} color={col}     label="ΜΕΣΗ ΤΙΜΗ/L" unit="€/L" T={T}/>}
-                    </div>
-                  </div>
-                )}
-
-                <ChartBlock title="ΚΑΤΑΝΑΛΩΣΗ"     data={cd} dk="cons"  color="#10b981" type="line" T={T}/>
-                <ChartBlock title="LPG L/100"      data={cd} dk="lpgC"  color="#a78bfa" type="line" T={T}/>
-
-                {stats.expSpent > 0 && filtExp.length > 0 && (
-                  <div style={{marginTop:6}}>
-                    <div style={{fontSize:11,color:T.mt,letterSpacing:1,marginBottom:8}}>ΑΝΑΛΥΣΗ ΕΞΟΔΩΝ</div>
-                    <div style={{background:T.bg,borderRadius:13,padding:13,border:"1px solid " + T.br}}>
-                      {Object.entries(filtExp.reduce((acc,x)=>{ acc[x.label]=(acc[x.label]||0)+x.amount; return acc; },{}))
-                        .sort((a,b)=>b[1]-a[1]).map(([label,amount]) => {
-                          const pct = (amount/stats.expSpent*100);
-                          const cat = EXPENSE_CATS.find(c=>c.label===label);
-                          return (
-                            <div key={label} style={{marginBottom:10}}>
-                              <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                                <span style={{fontSize:12,color:T.tx}}>{cat?.icon||"💸"} {label}</span>
-                                <span style={{fontSize:12,fontWeight:700,color:col}}>{fmt(amount)}€</span>
-                              </div>
-                              <div style={{background:T.br,borderRadius:4,height:5}}>
-                                <div style={{background:col,borderRadius:4,height:5,width:pct+"%"}}/>
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
-                )}
+                <div style={{flex:"0 0 55%",marginLeft:"-10%",zIndex:1,filter:"drop-shadow(-3px 0 10px #f9731650)"}}>
+                  <RoundCyberGauge value={stats.aP} min={gaugeRanges.pplMin} max={gaugeRanges.pplMax} color="#f97316" label="ΜΕΣΗ ΤΙΜΗ/L" unit="€/L" T={T}/>
+                </div>
+              </div>
+            </div>
+            {stats.totalKm>0&&(
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
+                <div style={{...CS(),textAlign:"center",padding:10}}><div style={{fontSize:9,color:T.mt,marginBottom:4}}>ΣΥΝΟΛΟ ΧΛΜ</div><div style={{fontSize:15,fontWeight:"bold",color:"#06b6d4"}}>{stats.totalKm.toLocaleString()}</div><div style={{fontSize:9,color:T.mt}}>km</div></div>
+                <div style={{...CS(),textAlign:"center",padding:10,border:`1px solid ${col}44`}}><div style={{fontSize:9,color:T.mt,marginBottom:4}}>ΚΟΣΤΟΣ/ΧΛΜ</div><div style={{fontSize:15,fontWeight:"bold",color:col}}>{fmt(stats.costPerKm,3)}</div><div style={{fontSize:9,color:T.mt}}>€/km (ολικό)</div></div>
+                <div style={{...CS(),textAlign:"center",padding:10}}><div style={{fontSize:9,color:T.mt,marginBottom:4}}>ΚΑΥΣΙΜΟ/ΧΛΜ</div><div style={{fontSize:15,fontWeight:"bold",color:"#3b82f6"}}>{fmt(stats.fuelCostPerKm,3)}</div><div style={{fontSize:9,color:T.mt}}>€/km</div></div>
               </div>
             )}
-          </div>
-        )}
-
-        {/* TAB: HISTORY */}
-        {tab==="history" && (
-          <div>
-            <FBar/>
-            {filtFuel.length === 0 ? (
-              <div style={{textAlign:"center",padding:"60px 20px",color:T.ft}}>
-                <div style={{fontSize:48,marginBottom:12}}>📋</div>
-                <div>Δεν υπάρχουν καταχωρήσεις.</div>
+            <div style={{...CS(),marginBottom:14}}>
+              <div style={{fontSize:12,fontWeight:"bold",marginBottom:8,color:T.tx}}>📊 Μηνιαία Έξοδα · {fY!=="all"?fY:"Όλα τα έτη"}</div>
+              <StackedBarChart data={monthlyBarData} T={T}/>
+            </div>
+            {consSeries.length>=2&&(
+              <div style={{...CS(),marginBottom:14}}>
+                <div style={{fontSize:12,fontWeight:"bold",marginBottom:8,color:T.tx}}>⛽ Κατανάλωση ανά γέμισμα · {fY!=="all"?fY:"Όλα τα έτη"}</div>
+                <LineChart data={consSeries} color="#10b981" avg={stats.aC} T={T}/>
               </div>
-            ) : [...filtFuel].reverse().map(f => {
-              const ft = FTYPES.find(x => x.id===f.fuelType);
-              const so = STATIONS.find(s => s.id===f.stId);
-              const fc = FT_COLORS[f.fuelType] || { color:col };
-              return (
-                <div key={f.id} style={{background:T.bg,borderRadius:13,padding:"12px 12px 12px 16px",marginBottom:9,border:"1px solid " + T.br,position:"relative"}}>
-                  {/* Colored left bar */}
-                  <div style={{position:"absolute",left:0,top:0,bottom:0,width:4,borderRadius:"13px 0 0 13px",background:fc.color||col}}/>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                    <div style={{flex:1}}>
-                      <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:5}}>
-                        <span style={{fontWeight:700,fontSize:13,color:col}}>{f.date}</span>
-                        {ft && <FtBadge ftId={f.fuelType} size={11}/>}
-                        {f.dual && <span style={{fontSize:11,background:"#a78bfa22",color:"#a78bfa",padding:"2px 7px",borderRadius:6}}>Dual LPG</span>}
-                        {f.station && <span style={{fontSize:11,background:so?so.bg:"#555",color:so?so.fg:"#fff",padding:"2px 8px",borderRadius:6,fontWeight:700}}>{f.station}</span>}
+            )}
+            {allExp.length>0&&(
+              <div style={CS()}>
+                <div style={{fontSize:12,fontWeight:"bold",marginBottom:4,color:T.tx}}>🗂️ Κατανομή Εξόδων</div>
+                <div style={{fontSize:10,color:T.mt,marginBottom:10}}>Σύνολο οχήματος · {(expenses[vid]||[]).length} εγγραφές · tap για ανάλυση</div>
+                {EXPENSE_CATS.map(cat=>{
+                  const catEntries=(expenses[vid]||[]).filter(e=>(e.category||"custom")===cat.id).sort((a,b)=>new Date(b.date)-new Date(a.date));
+                  const tot=catEntries.reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
+                  if(!tot)return null;
+                  const grandTotal=(expenses[vid]||[]).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
+                  const pct=grandTotal>0?(tot/grandTotal*100):0;
+                  const isOpen=openCat===cat.id;
+                  const byMonth={};
+                  catEntries.forEach(e=>{
+                    const d=new Date(e.date),k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+                    const lbl=`${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`;
+                    if(!byMonth[k])byMonth[k]={lbl,entries:[],total:0};
+                    byMonth[k].entries.push(e);byMonth[k].total+=(parseFloat(e.amount)||0);
+                  });
+                  const monthKeys=Object.keys(byMonth);
+                  return(
+                    <div key={cat.id} style={{marginBottom:10}}>
+                      <div onClick={()=>setOpenCat(isOpen?null:cat.id)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5,cursor:"pointer",padding:"6px 0"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <span style={{fontSize:16}}>{cat.icon}</span>
+                          <span style={{fontSize:13,fontWeight:"bold"}}>{cat.label}</span>
+                          <span style={{fontSize:10,color:T.mt,background:T.br,padding:"1px 6px",borderRadius:8}}>{catEntries.length}</span>
+                        </div>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <span style={{fontSize:13,fontWeight:"bold"}}>{fmt(tot)}€</span>
+                          <span style={{fontSize:11,color:T.mt}}>({pct.toFixed(0)}%)</span>
+                          <span style={{fontSize:11,color:T.mt}}>{isOpen?"▲":"▼"}</span>
+                        </div>
                       </div>
-                      <div style={{display:"flex",flexWrap:"wrap",gap:"3px 10px"}}>
-                        {f.liters && <span style={{fontSize:12,color:T.tx}}>⛽ {fmt(f.liters,1)}L</span>}
-                        {f.ppl    && <span style={{fontSize:12,color:T.tx}}>💧 {fmt(f.ppl,3)}€/L</span>}
-                        {f.total  && <span style={{fontSize:12,color:T.tx}}>💰 {fmt(f.total)}€</span>}
-                        {f.km     && <span style={{fontSize:12,color:T.tx}}>📍 {fmt(f.km,0)}{dl}</span>}
-                        {f.km && f.liters && <span style={{fontSize:12,color:"#10b981"}}>🔥 {fmt(f.liters/f.km*100,1)}L/100</span>}
+                      <div style={{background:T.br,borderRadius:4,height:7,overflow:"hidden",marginBottom:isOpen?8:0}}>
+                        <div style={{background:col,width:`${pct}%`,height:7,borderRadius:4,transition:"width 0.5s ease"}}/>
                       </div>
-                      {f.dual && (f.lpgL||f.lpgT) && (
-                        <div style={{display:"flex",flexWrap:"wrap",gap:"3px 10px",marginTop:3}}>
-                          {f.lpgL && <span style={{fontSize:12,color:"#a78bfa"}}>🟣 {fmt(f.lpgL,1)}L</span>}
-                          {f.lpgP && <span style={{fontSize:12,color:"#a78bfa"}}>💧 {fmt(f.lpgP,3)}€/L</span>}
-                          {f.lpgT && <span style={{fontSize:12,color:"#a78bfa"}}>💰 {fmt(f.lpgT)}€</span>}
-                          {f.km && f.lpgL && <span style={{fontSize:12,color:"#a78bfa"}}>🔥 {fmt(f.lpgL/f.km*100,1)}L/100</span>}
+                      {isOpen&&(
+                        <div style={{background:T.bg,borderRadius:8,overflow:"hidden",border:`1px solid ${T.br}`}}>
+                          {monthKeys.map((mk)=>{
+                            const {lbl,entries:me,total:mt}=byMonth[mk];
+                            const mKey=cat.id+"_"+mk;
+                            const mOpen=!!openCatMonth[mKey];
+                            return(
+                              <div key={mk}>
+                                <div onClick={()=>setOpenCatMonth(p=>({...p,[mKey]:!p[mKey]}))} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",background:mOpen?T.br:T.ft,cursor:"pointer",borderBottom:`1px solid ${T.br}`}}>
+                                  <span style={{fontSize:11,fontWeight:"bold",color:T.tx}}>📅 {lbl} <span style={{color:T.mt,fontWeight:"normal"}}>({me.length})</span></span>
+                                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                    <span style={{fontSize:11,fontWeight:"bold",color:col}}>-{fmt(mt)}€</span>
+                                    <span style={{fontSize:10,color:T.mt}}>{mOpen?"▲":"▼"}</span>
+                                  </div>
+                                </div>
+                                {mOpen&&me.map((e,i)=>(
+                                  <div key={e.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 20px",background:i%2===0?T.bg:T.sf,borderBottom:i<me.length-1?`1px solid ${T.ft}`:"none"}}>
+                                    <div>
+                                      <div style={{fontSize:12,fontWeight:"bold"}}>{e.label||cat.label}</div>
+                                      <div style={{fontSize:10,color:T.mt}}>{formatDate(e.date)}</div>
+                                    </div>
+                                    <span style={{fontSize:13,fontWeight:"bold",color:"#e11d48"}}>-{fmt(e.amount)}€</span>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })}
+                          <div style={{padding:"8px 12px",background:T.ft,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <span style={{fontSize:11,color:T.mt,fontWeight:"bold"}}>ΣΥΝΟΛΟ {cat.label.toUpperCase()}</span>
+                            <span style={{fontSize:14,fontWeight:"bold",color:col}}>{fmt(tot)}€</span>
+                          </div>
                         </div>
                       )}
-                      {f.notes && <div style={{marginTop:4,fontSize:11,color:T.mt}}>📝 {f.notes}</div>}
                     </div>
-                    <button onClick={() => delFuel(f.id)} style={{background:"none",border:"none",color:T.ft,fontSize:18,paddingLeft:8,cursor:"pointer"}}>x</button>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Footer / Logo */}
-        <div style={{textAlign:"center",padding:"28px 0 4px",fontSize:19,fontWeight:700,color:"#3b82f6"}}>
-          ⛽ FuelLog v1.0
-        </div>
-        <div style={{textAlign:"center",paddingBottom:18,fontSize:19,fontWeight:700,color:"#3b82f6"}}>
-          Ταχμαζίδης Κ. Γιώργος
-        </div>
-      </div>
+        {/* ══ ΚΙΝΗΣΕΙΣ (unified history + calendar) ══ */}
+        {tab==="history"&&(
+          <div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <h3 style={{margin:0}}>🧾 Κινήσεις</h3>
+              <div style={{display:"flex",gap:6}}>
+                <button onClick={()=>setMovView("list")} style={chipStyle(movView==="list")}>📃 Λίστα</button>
+                <button onClick={()=>setMovView("cal")} style={chipStyle(movView==="cal")}>🗓️ Ημερολόγιο</button>
+              </div>
+            </div>
 
-      {/* FUEL TYPE PICKER */}
-      {showFtPicker && (
-        <Modal title="Είδος Καυσίμου" onClose={()=>setShowFtPicker(false)} T={T}>
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {FTYPES.map(ft => {
-              const fc  = FT_COLORS[ft.id] || {};
-              const sel = fuelForm.fuelType === ft.id;
-              return (
-                <button key={ft.id} onClick={()=>{ setFuelForm({...fuelForm, fuelType:ft.id}); setShowFtPicker(false); }}
-                  style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",
-                    border:"2px solid " + (sel?fc.color||col:T.br),borderRadius:12,
-                    background:sel?fc.bg||col+"22":T.bg,cursor:"pointer"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:12}}>
-                    <span style={{fontSize:22}}>{ft.icon}</span>
-                    <span style={{fontSize:14,fontWeight:sel?700:400,color:sel?fc.color||col:T.tx}}>{ft.label}</span>
+            <button onClick={()=>setNoteEdit({date:(movView==="cal"&&selDay)||today(),text:""})} style={{width:"100%",padding:11,marginBottom:12,background:"none",color:col,border:`2px dashed ${col}`,borderRadius:10,fontWeight:"bold",fontSize:14,cursor:"pointer"}}>📝 Νέα σημείωση</button>
+
+            {movView==="list"&&(
+              <div>
+                <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:12}}>
+                  <button onClick={()=>setMovFilter("all")} style={chipStyle(movFilter==="all")}>Όλα</button>
+                  <button onClick={()=>setMovFilter("fuel")} style={chipStyle(movFilter==="fuel")}>⛽ Καύσιμα</button>
+                  <button onClick={()=>setMovFilter("exp")} style={chipStyle(movFilter==="exp")}>📋 Έξοδα</button>
+                  <button onClick={()=>setMovFilter("note")} style={chipStyle(movFilter==="note")}>📝 Σημειώσεις</button>
+                  <select value={histSort} onChange={e=>setHistSort(e.target.value)} style={{...IS,marginBottom:0,marginLeft:"auto",padding:"5px 8px",fontSize:11,width:"auto"}}>
+                    <option value="date_desc">📅 Νεότερο</option><option value="date_asc">📅 Παλαιότερο</option>
+                  </select>
+                </div>
+                {movesByMonth.length===0&&<div style={{textAlign:"center",color:T.mt,padding:30}}>Δεν υπάρχουν εγγραφές ακόμα.</div>}
+                {movesByMonth.map(({key,label,items,nF,nE,nN,total})=>{
+                  const isO=openFuelM[key]===undefined?key===curMonthKey:openFuelM[key];
+                  const badge=[nF>0?`⛽ ${nF}`:null,nE>0?`📋 ${nE}`:null,nN>0?`📝 ${nN}`:null].filter(Boolean).join(" · ");
+                  return(
+                    <MonthGroup key={key} monthKey={key} label={label} badge={badge} total={total>0?`${fmt(total)}€`:null} isOpen={isO} onToggle={()=>setOpenFuelM(p=>({...p,[key]:!isO}))} T={T}>
+                      {items.map((it,i)=>(
+                        <div key={it.e.id} style={{borderLeft:`4px solid ${it.kind==="fuel"?"#3b82f6":it.kind==="note"?"#eab308":"#e11d48"}`}}>
+                          {it.kind==="fuel"
+                            ?<FuelEntryRow e={it.e} i={i} total={items.length} allFuel={allFuel} T={T} col={col} swipeId={swipeId} setSwipeId={setSwipeId} swipeStartX={swipeStartX} onEdit={setEditFuelE} onDel={handleDelFuel}/>
+                            :it.kind==="note"
+                            ?<NoteEntryRow e={it.e} i={i} total={items.length} T={T} onEdit={setNoteEdit} onDel={handleDelNote}/>
+                            :<ExpenseEntryRow e={it.e} i={i} total={items.length} T={T} onEdit={setEditExpE} onDel={handleDelExp}/>}
+                        </div>
+                      ))}
+                    </MonthGroup>
+                  );
+                })}
+              </div>
+            )}
+
+            {movView==="cal"&&(()=>{
+              const first=(new Date(calY,calM,1).getDay()+6)%7,nd=new Date(calY,calM+1,0).getDate();
+              const cells=[];for(let i=0;i<first;i++)cells.push(null);for(let d=1;d<=nd;d++)cells.push(d);
+              const mk=`${calY}-${String(calM+1).padStart(2,"0")}`;
+              const dk=d=>`${mk}-${String(d).padStart(2,"0")}`;
+              const shiftM=n=>{const d=new Date(calY,calM+n,1);setCalY(d.getFullYear());setCalM(d.getMonth());setSelDay(null);};
+              let mTotal=0;
+              for(let d=1;d<=nd;d++){const x=dayMap[dk(d)];if(x){mTotal+=x.f.reduce((s,e)=>s+(parseFloat(e.total)||0),0)+x.x.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);}}
+              const sel=selDay?dayMap[selDay]:null;
+              const selCount=sel?sel.f.length+sel.x.length+sel.n.length:0;
+              return(
+                <div>
+                  <div style={{...CS(),marginBottom:12}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                      <button onClick={()=>shiftM(-1)} style={{...chipStyle(false),fontSize:16}}>◀</button>
+                      <div style={{textAlign:"center"}}>
+                        <div style={{fontWeight:"bold",fontSize:15}}>{MONTHS_FULL[calM]} {calY}</div>
+                        <div style={{fontSize:11,color:T.mt}}>Σύνολο μήνα: <b style={{color:"#e07b54"}}>{fmt(mTotal)}€</b></div>
+                      </div>
+                      <button onClick={()=>shiftM(1)} style={{...chipStyle(false),fontSize:16}}>▶</button>
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:4}}>
+                      {WEEKDAYS.map(w=><div key={w} style={{textAlign:"center",fontSize:10,color:T.mt,fontWeight:"bold"}}>{w}</div>)}
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
+                      {cells.map((d,i)=>{
+                        if(d===null)return<div key={"e"+i}/>;
+                        const k=dk(d),x=dayMap[k],isToday=k===today(),isSel=k===selDay;
+                        const firstCat=x&&x.x.length?EXPENSE_CATS.find(c=>c.id===x.x[0].category):null;
+                        return(
+                          <div key={k} onClick={()=>setSelDay(isSel?null:k)} style={{aspectRatio:"1/1",borderRadius:8,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-start",paddingTop:3,boxSizing:"border-box",
+                            background:isSel?col:x?T.bg:"transparent",border:`2px solid ${isToday?col:x?T.br:"transparent"}`}}>
+                            <span style={{fontSize:11,fontWeight:isToday?"bold":"normal",color:isSel?"#fff":T.tx}}>{d}</span>
+                            <div style={{display:"flex",gap:1,fontSize:11,lineHeight:1.1,marginTop:1}}>
+                              {x&&x.f.length>0&&<span>⛽</span>}
+                              {x&&x.x.length>0&&<span>{firstCat?firstCat.icon:"💸"}</span>}
+                              {x&&x.n.length>0&&<span>📝</span>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{fontSize:10,color:T.mt,marginTop:8,textAlign:"center"}}>⛽ γέμισμα · 📝 σημείωση · άλλα εικονίδια = έξοδο (service, διόδια κ.λπ.) · πάτα μια μέρα για λεπτομέρειες</div>
                   </div>
-                  <div style={{width:20,height:20,borderRadius:"50%",border:"2px solid " + (sel?fc.color||col:T.br),
-                    background:sel?fc.color||col:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff"}}>
-                    {sel?"v":""}
-                  </div>
-                </button>
+                  {selDay&&(
+                    <div>
+                      <div style={{fontSize:13,fontWeight:"bold",marginBottom:8}}>📌 {formatDate(selDay)}</div>
+                      {selCount===0&&<div style={{textAlign:"center",color:T.mt,padding:16,fontSize:13}}>Καμία κίνηση αυτή τη μέρα.</div>}
+                      {selCount>0&&(
+                        <div style={{borderRadius:12,overflow:"hidden",border:`1px solid ${T.br}`}}>
+                          {sel.f.map((e,i)=>(
+                            <div key={e.id} style={{borderLeft:"4px solid #3b82f6"}}>
+                              <FuelEntryRow e={e} i={i} total={selCount} allFuel={allFuel} T={T} col={col} swipeId={swipeId} setSwipeId={setSwipeId} swipeStartX={swipeStartX} onEdit={setEditFuelE} onDel={handleDelFuel}/>
+                            </div>
+                          ))}
+                          {sel.x.map((e,i)=>(
+                            <div key={e.id} style={{borderLeft:"4px solid #e11d48"}}>
+                              <ExpenseEntryRow e={e} i={sel.f.length+i} total={selCount} T={T} onEdit={setEditExpE} onDel={handleDelExp}/>
+                            </div>
+                          ))}
+                          {sel.n.map((e,i)=>(
+                            <div key={e.id} style={{borderLeft:"4px solid #eab308"}}>
+                              <NoteEntryRow e={e} i={sel.f.length+sel.x.length+i} total={selCount} T={T} onEdit={setNoteEdit} onDel={handleDelNote}/>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               );
-            })}
+            })()}
           </div>
-        </Modal>
+        )}
+      </main>
+
+      {/* ══ MODALS ══ */}
+
+      <Modal open={showAddV} onClose={()=>setShowAddV(false)} title="➕ Νέο Όχημα" T={T}>
+        <input type="text" placeholder="Όνομα (π.χ. ΕΤΑΙΡΙΚΟ)" value={newV.name} onChange={e=>setNewV({...newV,name:e.target.value})} style={IS}/>
+        <div style={{fontSize:11,color:T.mt,marginBottom:8}}>ΚΑΤΗΓΟΡΙΑ</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:14}}>{VCATS.map(c=><button key={c.id} onClick={()=>setNewV({...newV,category:c.id,icon:c.icon})} style={{padding:"7px 12px",borderRadius:20,border:"none",cursor:"pointer",fontSize:13,background:newV.category===c.id?col:T.br,color:newV.category===c.id?"#fff":T.mt}}>{c.icon} {c.label}</button>)}</div>
+        <input type="text" placeholder="Αρ. Πινακίδας" value={newV.info.plate} onChange={e=>setNewV({...newV,info:{...newV.info,plate:e.target.value}})} style={IS}/>
+        <div style={{fontSize:11,color:T.mt,marginBottom:6}}>ΚΥΡΙΟ ΚΑΥΣΙΜΟ</div>
+        <select value={newV.fuelType} onChange={e=>setNewV({...newV,fuelType:e.target.value})} style={IS}>{FTYPES.map(f=><option key={f.id} value={f.id}>{f.icon} {f.label}</option>)}</select>
+        <div style={{fontSize:11,color:T.mt,marginBottom:6}}>2ο ΚΑΥΣΙΜΟ</div>
+        <select value={newV.fuelType2} onChange={e=>setNewV({...newV,fuelType2:e.target.value})} style={IS}><option value="">— Κανένα —</option>{FTYPES.map(f=><option key={f.id} value={f.id}>{f.icon} {f.label}</option>)}</select>
+        <div style={{fontSize:11,color:T.mt,marginBottom:8}}>ΧΡΩΜΑ</div>
+        <div style={{display:"flex",gap:10,marginBottom:18,flexWrap:"wrap"}}>{FUEL_COLORS.map(c=><div key={c} onClick={()=>setNewV({...newV,color:c})} style={{width:32,height:32,borderRadius:"50%",background:c,cursor:"pointer",border:newV.color===c?"3px solid #fff":"3px solid transparent",boxSizing:"border-box"}}/>)}</div>
+        <button onClick={handleAddVehicle} style={{width:"100%",padding:14,background:newV.color,color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:15,cursor:"pointer"}}>ΠΡΟΣΘΗΚΗ ΟΧΗΜΑΤΟΣ</button>
+      </Modal>
+
+      <Modal open={showVInfo} onClose={()=>setShowVInfo(false)} title={`${av.icon} ${av.name} · Αρχείο αυτοκινήτου`} T={T}>
+        {[
+          {f:"brand",label:"Μάρκα",type:"text",ph:"Toyota, BMW…"},{f:"model",label:"Μοντέλο",type:"text",ph:"Corolla, X5…"},
+          {f:"year",label:"Έτος",type:"number",ph:"2020"},{f:"cc",label:"Κυβικά (cc)",type:"number",ph:"1600"},
+          {f:"plate",label:"Αρ. Πινακίδας",type:"text",ph:"ΑΒΓ-1234"},{f:"chassis",label:"Αρ. Πλαισίου (VIN)",type:"text",ph:"WBA…"},
+          {f:"insurance",label:"Αρ. Ασφαλιστηρίου",type:"text",ph:""},{f:"insuranceExp",label:"Λήξη Ασφάλειας",type:"date",ph:""},
+          {f:"kteo",label:"Επόμενο ΚΤΕΟ",type:"date",ph:""},{f:"kek",label:"Επόμενο ΚΕΚ",type:"date",ph:""},
+          {f:"tiresBrand",label:"Μάρκα Ελαστικών",type:"text",ph:"Michelin…"},{f:"tiresSize",label:"Διαστάσεις Ελαστικών",type:"text",ph:"195/65R15"},
+          {f:"tiresDate",label:"Τελευταία Αλλαγή Ελαστ.",type:"date",ph:""},{f:"tiresNext",label:"Επόμενη Αλλαγή Ελαστ.",type:"date",ph:""},
+          {f:"serviceDate",label:"Τελευταίο Service",type:"date",ph:""},{f:"serviceNextDate",label:"Επόμενο Service (ημ.)",type:"date",ph:""},
+          {f:"serviceKm",label:"Service στα (χλμ)",type:"number",ph:"150000"},{f:"serviceNextKm",label:"Επόμενο Service (χλμ)",type:"number",ph:"165000"},
+          {f:"serviceNotes",label:"Σημ. Service",type:"text",ph:"Αλλαγή λαδιών…"},
+          {f:"driverMain",label:"Κύριος Οδηγός",type:"text",ph:"Ονοματεπώνυμο"},{f:"driverSecond",label:"2ος Οδηγός",type:"text",ph:"Ονοματεπώνυμο"},
+        ].map(({f,label,type,ph})=>(
+          <div key={f} style={{marginBottom:12}}>
+            <div style={{fontSize:10,color:T.mt,marginBottom:3,fontWeight:"bold"}}>{label.toUpperCase()}</div>
+            <input type={type} placeholder={ph} value={(av.info||{})[f]||""} onChange={e=>updateVInfo(f,e.target.value)} style={{...IS,marginBottom:0}}/>
+          </div>
+        ))}
+        <button onClick={()=>setShowVInfo(false)} style={{width:"100%",padding:14,background:col,color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:15,cursor:"pointer",marginTop:8}}>✅ Αποθήκευση &amp; Κλείσιμο</button>
+      </Modal>
+
+      <Modal open={showIO} onClose={()=>setShowIO(false)} title="💾 Εισαγωγή / Εξαγωγή" T={T}>
+        <div style={{fontSize:13,fontWeight:"bold",marginBottom:10}}>Εξαγωγή Δεδομένων</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+          <button onClick={exportJSON} style={{padding:12,background:"#3b82f6",color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",cursor:"pointer",fontSize:13}}>⬇️ JSON</button>
+          <button onClick={exportCSV} style={{padding:12,background:"#10b981",color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",cursor:"pointer",fontSize:13}}>⬇️ CSV</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
+          <button onClick={exportExcel} style={{padding:12,background:"#22c55e",color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",cursor:"pointer",fontSize:13}}>📊 Excel (.xls)</button>
+          <button onClick={exportPDF} style={{padding:12,background:"#e11d48",color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",cursor:"pointer",fontSize:13}}>📄 PDF</button>
+        </div>
+        <div style={{fontSize:13,fontWeight:"bold",marginBottom:8}}>Εισαγωγή (JSON)</div>
+        <input ref={importRef} type="file" accept=".json" onChange={handleImportFile} style={{...IS,marginBottom:10}}/>
+        <textarea value={importText} onChange={e=>setImportText(e.target.value)} placeholder="Ή επικόλλησε JSON εδώ…" rows={4} style={{...IS,resize:"vertical",fontFamily:"monospace",fontSize:12}}/>
+        {importMsg&&<div style={{padding:"8px 12px",borderRadius:8,marginBottom:10,fontSize:13,fontWeight:"bold",background:importMsg.startsWith("✅")?"#0d2010":"#2a0a0a",color:importMsg.startsWith("✅")?"#10b981":"#ef4444"}}>{importMsg}</div>}
+        <button onClick={handleImport} style={{width:"100%",padding:13,background:col,color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:15,cursor:"pointer"}}>⬆️ Εισαγωγή Δεδομένων</button>
+        <div style={{fontSize:10,color:T.mt,marginTop:8,textAlign:"center"}}>⚠️ Η εισαγωγή αντικαθιστά όλα τα υπάρχοντα δεδομένα.</div>
+      </Modal>
+
+      <Modal open={!!editFuelE} onClose={()=>setEditFuelE(null)} title="✏️ Επεξεργασία Γεμίσματος" T={T}>
+        {editFuelE&&(
+          <div>
+            <input type="date" value={editFuelE.date} onChange={e=>setEditFuelE({...editFuelE,date:e.target.value})} style={IS}/>
+            <select value={editFuelE.fuelType} onChange={e=>setEditFuelE({...editFuelE,fuelType:e.target.value})} style={IS}>{FTYPES.map(f=><option key={f.id} value={f.id}>{f.icon} {f.label}</option>)}</select>
+            <input type="number" step="0.001" placeholder="Τιμή €/λίτρο" value={editFuelE.ppl} onChange={e=>setEditFuelE({...editFuelE,ppl:e.target.value})} style={IS}/>
+            <input type="number" step="0.01" placeholder="Συνολικό Ποσό €" value={editFuelE.total} onChange={e=>setEditFuelE({...editFuelE,total:e.target.value})} style={IS}/>
+            {parseFloat(editFuelE.ppl)>0&&parseFloat(editFuelE.total)>0&&<div style={{background:dark?"#0d2010":"#d4eed8",color:"#10b981",padding:"8px 12px",borderRadius:8,marginBottom:10,fontSize:13,fontWeight:"bold"}}>🧮 {+(parseFloat(editFuelE.total)/parseFloat(editFuelE.ppl)).toFixed(2)} λίτρα</div>}
+            <input type="number" placeholder="Odometer" value={editFuelE.odo||""} onChange={e=>setEditFuelE({...editFuelE,odo:e.target.value})} style={IS}/>
+            <input type="text" placeholder="Σημειώσεις" value={editFuelE.notes||""} onChange={e=>setEditFuelE({...editFuelE,notes:e.target.value})} style={IS}/>
+            <button onClick={handleSaveEditFuel} style={{width:"100%",padding:14,background:col,color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:15,cursor:"pointer"}}>ΑΠΟΘΗΚΕΥΣΗ</button>
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={!!editExpE} onClose={()=>setEditExpE(null)} title="✏️ Επεξεργασία Εξόδου" T={T}>
+        {editExpE&&(
+          <div>
+            <input type="date" value={editExpE.date} onChange={e=>setEditExpE({...editExpE,date:e.target.value})} style={IS}/>
+            <select value={editExpE.category} onChange={e=>setEditExpE({...editExpE,category:e.target.value})} style={IS}>{EXPENSE_CATS.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}</select>
+            <input type="text" placeholder="Τοποθεσία / Περιγραφή" value={editExpE.label||""} onChange={e=>setEditExpE({...editExpE,label:e.target.value})} style={IS}/>
+            <input type="number" step="0.01" placeholder="Ποσό €" value={editExpE.amount} onChange={e=>setEditExpE({...editExpE,amount:e.target.value})} style={IS}/>
+            <button onClick={handleSaveEditExp} style={{width:"100%",padding:14,background:col,color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:15,cursor:"pointer"}}>ΑΠΟΘΗΚΕΥΣΗ</button>
+          </div>
+        )}
+      </Modal>
+
+      {confirmDel&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={e=>{if(e.target===e.currentTarget)setConfirmDel(null);}}>
+          <div style={{background:T.sf,border:`2px solid ${confirmDel.info?col:"#e11d48"}`,borderRadius:18,padding:"22px 18px 18px",width:"100%",maxWidth:340,textAlign:"center"}}>
+            {confirmDel.info?(
+              <div>
+                <div style={{fontSize:36,marginBottom:8}}>ℹ️</div>
+                <div style={{fontSize:15,fontWeight:"bold",marginBottom:16}}>{confirmDel.title}</div>
+                <button onClick={()=>setConfirmDel(null)} style={{width:"100%",padding:13,background:col,color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:15,cursor:"pointer"}}>ΟΚ</button>
+              </div>
+            ):(
+              <div>
+                <div style={{fontSize:40,marginBottom:6}}>🗑️</div>
+                <div style={{fontSize:17,fontWeight:"bold",marginBottom:8}}>Είσαι σίγουρος για τη διαγραφή;</div>
+                <div style={{fontSize:13,fontWeight:"bold",marginBottom:4}}>{confirmDel.title}</div>
+                {confirmDel.detail&&<div style={{fontSize:12,color:T.mt,marginBottom:8,wordBreak:"break-word"}}>{confirmDel.detail}</div>}
+                <div style={{fontSize:12,color:"#e11d48",fontWeight:"bold",marginBottom:16}}>Δεν μπορεί να αναιρεθεί.</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  <button onClick={()=>setConfirmDel(null)} style={{padding:13,background:T.br,color:T.tx,border:"none",borderRadius:10,fontWeight:"bold",fontSize:14,cursor:"pointer"}}>Ακύρωση</button>
+                  <button onClick={()=>{const f=confirmDel.fn;setConfirmDel(null);if(f)f();}} style={{padding:13,background:"#e11d48",color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:14,cursor:"pointer"}}>Διαγραφή</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
-      {/* STATION PICKER */}
-      {showStPicker && (
-        <StationModal
-          current={{ stId:fuelForm.stId, stLabel:fuelForm.stLabel }}
-          onSelect={(id,lb) => { setFuelForm({...fuelForm, stId:id, stLabel:lb}); setShowStPicker(false); }}
-          onClose={() => setShowStPicker(false)}
-          T={T}
-        />
-      )}
-
-      {/* MODAL: Add Vehicle */}
-      {modal==="av" && (
-        <Modal title="Νέο Όχημα" onClose={()=>setModal(null)} T={T}>
-          <div style={{marginBottom:12}}>
-            <label style={lS}>ΚΑΤΗΓΟΡΙΑ</label>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
-              {VCATS.map(c => (
-                <button key={c.id} onClick={()=>setNewV({...newV,category:c.id,icon:c.icons[0]})}
-                  style={{padding:"6px 12px",borderRadius:8,border:"1px solid "+(newV.category===c.id?col:T.br),
-                    background:newV.category===c.id?col+"22":"transparent",color:newV.category===c.id?col:T.mt,fontSize:12,cursor:"pointer"}}>
-                  {c.icons[0]} {c.label}
-                </button>
-              ))}
-            </div>
-            <label style={lS}>ΕΙΚΟΝΙΔΙΟ</label>
-            <div style={{display:"flex",gap:6,marginBottom:12}}>
-              {(VCATS.find(c=>c.id===newV.category)?.icons||["🚗"]).map(ic => (
-                <button key={ic} onClick={()=>setNewV({...newV,icon:ic})}
-                  style={{fontSize:22,padding:"6px 10px",border:"2px solid "+(newV.icon===ic?col:T.br),borderRadius:9,background:"transparent",cursor:"pointer"}}>{ic}</button>
-              ))}
-            </div>
-            <label style={lS}>ΟΝΟΜΑ</label>
-            <input value={newV.name} onChange={e=>setNewV({...newV,name:e.target.value})} placeholder="π.χ. Εταιρικό Βαν"
-              style={{...iS(!!newV.name), marginBottom:14}}/>
+      <Modal open={!!noteEdit} onClose={()=>setNoteEdit(null)} title={noteEdit&&noteEdit.id?"✏️ Επεξεργασία Σημείωσης":"📝 Νέα Σημείωση"} T={T}>
+        {noteEdit&&(
+          <div>
+            <input type="date" value={noteEdit.date} onChange={e=>setNoteEdit({...noteEdit,date:e.target.value})} style={IS}/>
+            <textarea rows={6} placeholder="Γράψε ό,τι θέλεις να θυμάσαι (π.χ. θόρυβος στα φρένα, ξέχασα να ελέγξω τα λάδια…)" value={noteEdit.text} onChange={e=>setNoteEdit({...noteEdit,text:e.target.value})} style={{...IS,resize:"vertical",fontFamily:"inherit"}}/>
+            <button onClick={handleSaveNote} style={{width:"100%",padding:14,background:col,color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:15,cursor:"pointer"}}>ΑΠΟΘΗΚΕΥΣΗ</button>
           </div>
-          <div style={{display:"flex",gap:8}}>
-            <button onClick={()=>setModal(null)} style={{flex:1,padding:12,background:"transparent",border:"1px solid "+T.br,borderRadius:10,color:T.mt,cursor:"pointer"}}>Ακύρωση</button>
-            <button onClick={addVeh} style={{flex:2,padding:12,background:col,color:"#fff",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer"}}>Προσθήκη</button>
-          </div>
-        </Modal>
-      )}
+        )}
+      </Modal>
 
-      {/* MODAL: Vehicle Info */}
-      {modal==="vi" && av && (
-        <VehicleInfoModal
-          av={av}
-          onClose={() => setModal(null)}
-          onUpdate={updateVehicle}
-          onDelete={deleteVehicle}
-          onAddReminder={addR}
-          onUpdateReminder={upR}
-          onDelReminder={delR}
-          T={T}
-          dl={dl}
-        />
-      )}
-
-      {/* MODAL: Backup */}
-      {modal==="bk" && (
-        <Modal title="Backup and Export" onClose={()=>setModal(null)} T={T}>
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <label style={lS}>ΕΞΑΓΩΓΗ</label>
-            <button onClick={exCsv}  style={{padding:"13px 16px",background:"#3b82f622",border:"1px solid #3b82f644",borderRadius:11,color:"#3b82f6",fontSize:14,fontWeight:600,textAlign:"left",cursor:"pointer"}}>📄 Export CSV (καύσιμα)</button>
-            <button onClick={exJson} style={{padding:"13px 16px",background:col+"22",border:"1px solid "+col+"44",borderRadius:11,color:col,fontSize:14,fontWeight:600,textAlign:"left",cursor:"pointer"}}>📦 Backup JSON (όλα)</button>
-            <label style={{...lS,marginTop:8}}>ΕΠΑΝΑΦΟΡΑ</label>
-            <input ref={fref} type="file" accept=".json" onChange={imJson} style={{display:"none"}}/>
-            <button onClick={()=>fref.current?.click()} style={{padding:"13px 16px",background:T.bg,border:"1px solid "+T.br,borderRadius:11,color:T.tx,fontSize:14,fontWeight:600,textAlign:"left",cursor:"pointer"}}>📥 Εισαγωγή JSON backup</button>
-            <div style={{borderTop:"1px solid "+T.br,paddingTop:12,marginTop:4}}>
-              <button onClick={loadDemo} style={{width:"100%",padding:10,background:T.br,color:T.tx,border:"none",borderRadius:8,fontSize:12,cursor:"pointer"}}>Φόρτωση demo δεδομένων</button>
-            </div>
+      <Modal open={showAbout} onClose={()=>setShowAbout(false)} title="ℹ️ Σχετικά" T={T}>
+        <div style={{textAlign:"center",padding:"10px 0 20px"}}>
+          <div style={{fontSize:48,marginBottom:8}}>⛽</div>
+          <div style={{fontSize:22,fontWeight:"bold",marginBottom:4}}>FuelLog</div>
+          <div style={{fontSize:14,color:col,marginBottom:20}}>v2.8</div>
+          <div style={{fontSize:13,color:T.mt,lineHeight:1.9,marginBottom:20,textAlign:"left"}}>
+            ⛽ Γεμίσματα καυσίμου με αυτόματο υπολογισμό λίτρων<br/>
+            🛣️ Διόδια, Πομποδέκτης, Parking, Service, Ελαστικά &amp; άλλα έξοδα<br/>
+            🧾 Κινήσεις: ενιαίο ιστορικό &amp; ημερολόγιο<br/>
+            📊 Στατιστικά, γραφήματα &amp; ανάλυση κατανάλωσης<br/>
+            🚗 Υποστήριξη πολλαπλών οχημάτων &amp; 2 καυσίμων<br/>
+            🔔 Υπενθυμίσεις ΚΤΕΟ, ασφάλειας, service<br/>
+            💾 Εξαγωγή σε JSON, CSV, Excel, PDF<br/>
           </div>
-        </Modal>
-      )}
+          <div style={{borderTop:`1px solid ${T.br}`,paddingTop:16}}>
+            <div style={{fontSize:12,color:T.mt,marginBottom:4}}>Σχεδίαση &amp; Ανάπτυξη</div>
+            <div style={{fontSize:18,fontWeight:"bold",color:col}}>Ταχμαζίδης Κ. Γιώργος</div>
+            <div style={{fontSize:12,color:T.mt,marginTop:4}}>© 10/2026 · Όλα τα δικαιώματα διατηρούνται</div>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={showEditV&&!!editVData} onClose={()=>{setShowEditV(false);setEditVData(null);}} title="✏️ Επεξεργασία Οχήματος" T={T}>
+        {editVData&&(
+          <div>
+            <div style={{fontSize:11,color:T.mt,marginBottom:6,fontWeight:"bold"}}>ΟΝΟΜΑ</div>
+            <input type="text" value={editVData.name} onChange={e=>setEditVData({...editVData,name:e.target.value})} style={IS}/>
+            <div style={{fontSize:11,color:T.mt,marginBottom:8,fontWeight:"bold"}}>ΚΑΤΗΓΟΡΙΑ</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:14}}>{VCATS.map(c=><button key={c.id} onClick={()=>setEditVData({...editVData,category:c.id,icon:c.icon})} style={{padding:"7px 12px",borderRadius:20,border:"none",cursor:"pointer",fontSize:13,background:editVData.category===c.id?editVData.color:T.br,color:editVData.category===c.id?"#fff":T.mt}}>{c.icon} {c.label}</button>)}</div>
+            <div style={{fontSize:11,color:T.mt,marginBottom:6,fontWeight:"bold"}}>ΚΥΡΙΟ ΚΑΥΣΙΜΟ</div>
+            <select value={editVData.fuelType} onChange={e=>setEditVData({...editVData,fuelType:e.target.value})} style={IS}>{FTYPES.map(f=><option key={f.id} value={f.id}>{f.icon} {f.label}</option>)}</select>
+            <div style={{fontSize:11,color:T.mt,marginBottom:6,fontWeight:"bold"}}>2ο ΚΑΥΣΙΜΟ</div>
+            <select value={editVData.fuelType2||""} onChange={e=>setEditVData({...editVData,fuelType2:e.target.value})} style={IS}><option value="">— Κανένα —</option>{FTYPES.map(f=><option key={f.id} value={f.id}>{f.icon} {f.label}</option>)}</select>
+            <div style={{fontSize:11,color:T.mt,marginBottom:8,fontWeight:"bold"}}>ΧΡΩΜΑ</div>
+            <div style={{display:"flex",gap:10,marginBottom:20,flexWrap:"wrap"}}>{FUEL_COLORS.map(c=><div key={c} onClick={()=>setEditVData({...editVData,color:c})} style={{width:34,height:34,borderRadius:"50%",background:c,cursor:"pointer",border:editVData.color===c?"3px solid #fff":"3px solid transparent",boxSizing:"border-box"}}/>)}</div>
+            <button onClick={handleSaveEditV} style={{width:"100%",padding:14,background:editVData.color,color:"#fff",border:"none",borderRadius:10,fontWeight:"bold",fontSize:15,cursor:"pointer",marginBottom:10}}>✅ Αποθήκευση</button>
+            <button onClick={handleDeleteV} style={{width:"100%",padding:12,background:"none",color:"#e11d48",border:"2px solid #e11d48",borderRadius:10,fontWeight:"bold",fontSize:14,cursor:"pointer"}}>🗑️ Διαγραφή Οχήματος</button>
+          </div>
+        )}
+      </Modal>
 
     </div>
   );
