@@ -1,7 +1,7 @@
 {
   "name": "FuelLog",
   "short_name": "FuelLog",
-  "description": "Παρακολούθηση καυσίμων - Ταχμαζίδης Κ. Γιώργος",
+  "description": "Παρακολούθηση καυσίμων και εξόδων οχημάτων - Ταχμαζίδης Κ. Γιώργος",
   "start_url": "/fuellog/",
   "display": "standalone",
   "background_color": "#0a0a0f",
